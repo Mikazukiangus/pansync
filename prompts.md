@@ -375,3 +375,11 @@ i don't see the disqus embed on the main page though
 ```text
 update the site to be dynamically optimised for both desktop and mobile, depending on their browser.
 ```
+
+---
+
+## Prompt 25 — `2026-11-27 15:25:54 +08:00`
+
+```text
+all done and pushed?
+```
