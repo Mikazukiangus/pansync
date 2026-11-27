@@ -302,3 +302,12 @@ Instead of staples on the top right, change it to preferences.
 2. Change website color scheme to the image attached, which orange as the accents.
 ```
 
+---
+
+## Prompt 18 — `2026-11-27 14:54:20 +08:00`
+
+```text
+with the openfoodfacts api, can you suggest any additional information you can put for each recipes as indicated? I would need this to be applied to all recipes on the website. 
+```
+
+*(Attached screenshot of the Find page with areas circled on the right side of each `RecipeCard` header next to the recipe title: Bread omelette, Tortang Talong, Peanut Butter Cookies.)*
