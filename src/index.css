@@ -36,15 +36,38 @@
 }
 
 @layer base {
+  html,
+  body {
+    overflow-x: clip;
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
     font-family: var(--font-sans);
     background-color: var(--color-cream);
     color: var(--color-ink);
+    overscroll-behavior-y: contain;
   }
 
   h1, h2, h3, .font-display {
     font-family: var(--font-display);
     text-wrap: balance;
+  }
+
+  button,
+  a,
+  [role="button"] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Prevent iOS Safari auto-zoom when focusing inputs on mobile screens */
+  @media (max-width: 767px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px;
+    }
   }
 
   button:focus-visible,
@@ -55,6 +78,25 @@
     outline: 2px solid var(--color-sage-600);
     outline-offset: 2px;
   }
+}
+
+/* Safe-area helpers for notched mobile browsers */
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.pb-safe {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+}
+
+/* Hide scrollbars cleanly on horizontally scrollable mobile chip bars */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -68,21 +110,23 @@
   }
 }
 
-/* Subtle warm scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
+/* Subtle warm scrollbar on desktop fine-pointer browsers */
+@media (hover: hover) and (pointer: fine) {
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
 
-::-webkit-scrollbar-track {
-  background: var(--color-cream);
-}
+  ::-webkit-scrollbar-track {
+    background: var(--color-cream);
+  }
 
-::-webkit-scrollbar-thumb {
-  background: #d4cbbd;
-  border-radius: 9999px;
-}
+  ::-webkit-scrollbar-thumb {
+    background: #d4cbbd;
+    border-radius: 9999px;
+  }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #b8ad9d;
+  ::-webkit-scrollbar-thumb:hover {
+    background: #b8ad9d;
+  }
 }

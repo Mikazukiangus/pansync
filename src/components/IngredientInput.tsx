@@ -1,5 +1,6 @@
 import { Plus, Search, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useViewport } from '../hooks/useViewport'
 import { normalize } from '../lib/matching'
 
 interface IngredientInputProps {
@@ -36,6 +37,7 @@ export function IngredientInput({
   const [focused, setFocused] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
   const [duplicateNotice, setDuplicateNotice] = useState<string | null>(null)
+  const { isTouchDevice } = useViewport()
   const fallbackInputRef = useRef<HTMLInputElement>(null)
   const inputRef = externalInputRef ?? fallbackInputRef
 
@@ -172,6 +174,9 @@ export function IngredientInput({
         <input
           ref={inputRef}
           type="text"
+          enterKeyHint="done"
+          autoComplete="off"
+          autoCorrect="off"
           value={draft}
           disabled={disabled}
           onFocus={() => setFocused(true)}
@@ -193,14 +198,16 @@ export function IngredientInput({
             disabled
               ? 'Using items from your Fridge tracker...'
               : ingredients.length === 0
-                ? 'Type ingredients (e.g. rice, egg, onion) and press Enter...'
+                ? isTouchDevice
+                  ? 'Tap to add ingredients (e.g. rice, egg)...'
+                  : 'Type ingredients (e.g. rice, egg, onion) and press Enter...'
                 : 'Add another ingredient...'
           }
-          className="min-w-48 flex-1 bg-transparent py-1 text-sm text-ink placeholder:text-ink-subtle focus:outline-none disabled:cursor-not-allowed"
+          className="min-w-32 flex-1 bg-transparent py-1 text-base text-ink placeholder:text-ink-subtle focus:outline-none disabled:cursor-not-allowed sm:min-w-48 sm:text-sm"
         />
 
-        {!draft.trim() && !disabled && ingredients.length === 0 && (
-          <kbd className="hidden rounded-md border border-parchment bg-cream px-1.5 py-0.5 font-mono text-[11px] font-semibold text-ink-subtle sm:inline-block">
+        {!draft.trim() && !disabled && ingredients.length === 0 && !isTouchDevice && (
+          <kbd className="hidden rounded-md border border-parchment bg-cream px-1.5 py-0.5 font-mono text-[11px] font-semibold text-ink-subtle md:inline-block">
             /
           </kbd>
         )}
@@ -264,7 +271,9 @@ export function IngredientInput({
                 }`}
               >
                 <span>{suggestion}</span>
-                <span className="text-xs text-ink-subtle">Enter or click</span>
+                <span className="text-xs text-ink-subtle">
+                  {isTouchDevice ? 'Tap to add' : 'Enter or click'}
+                </span>
               </button>
             </li>
           ))}
@@ -273,14 +282,14 @@ export function IngredientInput({
 
       {/* Quick-pick leftover chips */}
       {!disabled && (
-        <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-          <span className="mr-1 text-xs font-medium text-ink-muted">Quick add:</span>
+        <div className="no-scrollbar mt-2.5 flex flex-nowrap items-center gap-1.5 overflow-x-auto pb-0.5 sm:flex-wrap sm:overflow-visible">
+          <span className="mr-1 shrink-0 text-xs font-medium text-ink-muted">Quick add:</span>
           {POPULAR_LEFTOVERS.filter((p) => !existingNorms.has(normalize(p))).map((chip) => (
             <button
               key={chip}
               type="button"
               onClick={() => onAdd(chip)}
-              className="min-h-8 rounded-full border border-parchment bg-white/80 px-3 py-1 text-xs font-medium text-ink-muted transition hover:border-sage-400 hover:bg-sage-50 hover:text-sage-800"
+              className="min-h-8 shrink-0 rounded-full border border-parchment bg-white/80 px-3 py-1 text-xs font-medium whitespace-nowrap text-ink-muted transition hover:border-sage-400 hover:bg-sage-50 hover:text-sage-800"
             >
               + {chip}
             </button>

@@ -62,7 +62,7 @@ export function Nav() {
   return (
     <>
       {/* Top Header */}
-      <header className="sticky top-0 z-30 border-b border-parchment/80 bg-cream/90 backdrop-blur-md">
+      <header className="pt-safe sticky top-0 z-30 border-b border-parchment/80 bg-cream/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-2.5 sm:px-6">
           <NavLink to="/" className="group flex shrink-0 items-center gap-2.5">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sage-600 text-cream shadow-sm transition group-hover:bg-sage-700">
@@ -145,7 +145,7 @@ export function Nav() {
       {/* Mobile Bottom Navigation */}
       <nav
         aria-label="Mobile navigation"
-        className="fixed inset-x-0 bottom-0 z-30 border-t border-parchment bg-white/95 px-2 py-1 backdrop-blur-md md:hidden"
+        className="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-parchment bg-white/95 px-2 pt-1.5 backdrop-blur-md md:hidden"
       >
         <div className="mx-auto grid max-w-md grid-cols-4 gap-1">
           {navItems.map(({ to, label, icon: Icon, badge, urgent }) => (

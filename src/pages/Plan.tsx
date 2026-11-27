@@ -2,7 +2,8 @@ import {
   DndContext,
   DragOverlay,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useDraggable,
   useSensor,
   useSensors,
@@ -196,7 +197,8 @@ export function Plan() {
   }, [pickingSlot])
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 220, tolerance: 8 } }),
     useSensor(KeyboardSensor),
   )
 
@@ -868,14 +870,14 @@ export function Plan() {
       {/* Click-a-slot Recipe Selector Modal */}
       {pickingSlot && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/45 p-4 backdrop-blur-xs"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-ink/45 p-0 backdrop-blur-xs sm:items-center sm:p-4"
           role="dialog"
           aria-modal="true"
           aria-labelledby="slot-picker-heading"
           onClick={() => setPickingSlot(null)}
         >
           <div
-            className="w-full max-w-lg rounded-3xl border border-parchment bg-cream p-6 shadow-2xl"
+            className="pb-safe max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-t-3xl border border-parchment bg-cream p-5 shadow-2xl sm:rounded-3xl sm:p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between gap-3">
