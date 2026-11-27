@@ -235,3 +235,11 @@ Now my planner doesnt have breakfast in there. Lets add breakfast section above 
 
 Also the format of reading mon tue wed in a zig zag form hard to read. can we do it in a more linear form?
 ```
+
+---
+
+## Prompt 12 — `2026-11-27 14:22:21 +08:00`
+
+```text
+could you do a smoke test to check if this api is working normally?
+```
