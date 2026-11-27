@@ -1,10 +1,17 @@
 import { create } from 'zustand'
 import { normalize } from '../lib/matching'
 
+export type SearchMode = 'ingredients' | 'dish'
+
 interface SearchState {
+  searchMode: SearchMode
+  dishQuery: string
   manualIngredients: string[]
   fridgeMode: boolean
   maxMissing: number | null
+  setSearchMode: (mode: SearchMode) => void
+  setDishQuery: (query: string) => void
+  clearDishQuery: () => void
   addIngredients: (rawInput: string) => void
   removeIngredient: (name: string) => void
   clearIngredients: () => void
@@ -13,9 +20,14 @@ interface SearchState {
 }
 
 export const useSearch = create<SearchState>((set) => ({
+  searchMode: 'ingredients',
+  dishQuery: '',
   manualIngredients: [],
   fridgeMode: false,
   maxMissing: null,
+  setSearchMode: (mode) => set({ searchMode: mode }),
+  setDishQuery: (query) => set({ dishQuery: query }),
+  clearDishQuery: () => set({ dishQuery: '' }),
   addIngredients: (rawInput) => {
     const parts = rawInput
       .split(',')

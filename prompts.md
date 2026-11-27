@@ -383,3 +383,11 @@ update the site to be dynamically optimised for both desktop and mobile, dependi
 ```text
 all done and pushed?
 ```
+
+---
+
+## Prompt 26 — `2026-11-27 15:30:22 +08:00`
+
+```text
+i want do another improvement where i input the dish i want to make to give me the recipes. figure this out without breaking the UI and do a smoke test. 
+```

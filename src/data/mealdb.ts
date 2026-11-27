@@ -176,6 +176,132 @@ export interface LoadedRecipeDataset {
   isFallback: boolean
 }
 
+export interface DishSearchResult {
+  recipes: Recipe[]
+  fromNetwork: boolean
+}
+
+function scoreDishMatch(recipe: Recipe, lowerQuery: string, tokens: string[]): number {
+  const lowerName = recipe.name.toLowerCase()
+  const lowerCategory = recipe.category.toLowerCase()
+  const lowerArea = recipe.area.toLowerCase()
+
+  if (lowerName === lowerQuery) return 100
+  if (lowerName.startsWith(lowerQuery)) return 85
+  if (lowerName.includes(lowerQuery)) return 70
+
+  const allTokensInName = tokens.every((t) => lowerName.includes(t))
+  if (allTokensInName) return 55
+
+  const combined = `${lowerName} ${lowerCategory} ${lowerArea}`
+  if (tokens.every((t) => combined.includes(t))) return 35
+
+  return 0
+}
+
+/**
+ * Filter a local recipe list by dish name (also checking cuisine area & category
+ * for multi-word queries like "Japanese curry" or "Italian pasta").
+ */
+export function filterLocalRecipesByDish(
+  query: string,
+  localPool: readonly Recipe[],
+): Recipe[] {
+  const lowerQuery = query.trim().toLowerCase()
+  if (!lowerQuery) return []
+  const tokens = lowerQuery.split(/\s+/).filter(Boolean)
+  if (tokens.length === 0) return []
+
+  const scored: Array<{ recipe: Recipe; score: number }> = []
+  for (const recipe of localPool) {
+    const score = scoreDishMatch(recipe, lowerQuery, tokens)
+    if (score > 0) {
+      scored.push({ recipe, score })
+    }
+  }
+
+  scored.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score
+    return a.recipe.name.localeCompare(b.recipe.name)
+  })
+  return scored.map((entry) => entry.recipe)
+}
+
+/**
+ * Search recipes by dish name via TheMealDB (`search.php?s=...`), merging any
+ * additional local matches and gracefully falling back to localPool when offline.
+ */
+export async function searchMealsByName(
+  query: string,
+  localPool: readonly Recipe[] = [],
+): Promise<DishSearchResult> {
+  const trimmed = query.trim()
+  if (!trimmed) {
+    return { recipes: [], fromNetwork: false }
+  }
+
+  const localMatches = filterLocalRecipesByDish(trimmed, localPool)
+
+  if (isSimulatedOffline()) {
+    return { recipes: localMatches, fromNetwork: false }
+  }
+
+  try {
+    const payload = await fetchJsonWithTimeout<{ meals: MealDBRawMeal[] | null }>(
+      `${API_BASE}/search.php?s=${encodeURIComponent(trimmed)}`,
+      8000,
+    )
+
+    const byId = new Map<string, Recipe>()
+    if (Array.isArray(payload.meals)) {
+      for (const rawMeal of payload.meals) {
+        if (rawMeal?.idMeal && rawMeal?.strMeal) {
+          const mapped = mapMealToRecipe(rawMeal)
+          byId.set(mapped.id, mapped)
+        }
+      }
+    }
+
+    // Merge local matches (e.g. built-in fallback or multi-word matches) without duplicates
+    for (const localRecipe of localMatches) {
+      if (!byId.has(localRecipe.id)) {
+        byId.set(localRecipe.id, localRecipe)
+      }
+    }
+
+    const lowerQuery = trimmed.toLowerCase()
+    const tokens = lowerQuery.split(/\s+/).filter(Boolean)
+    const merged = Array.from(byId.values()).sort((a, b) => {
+      const scoreDiff =
+        scoreDishMatch(b, lowerQuery, tokens) - scoreDishMatch(a, lowerQuery, tokens)
+      if (scoreDiff !== 0) return scoreDiff
+      return a.name.localeCompare(b.name)
+    })
+
+    return { recipes: merged, fromNetwork: true }
+  } catch {
+    return { recipes: localMatches, fromNetwork: false }
+  }
+}
+
+/**
+ * Fetch a single recipe by its numeric TheMealDB ID (`lookup.php?i=...`).
+ */
+export async function fetchMealById(id: string): Promise<Recipe | null> {
+  if (!/^\d+$/.test(id) || isSimulatedOffline()) return null
+  try {
+    const payload = await fetchJsonWithTimeout<{ meals: MealDBRawMeal[] | null }>(
+      `${API_BASE}/lookup.php?i=${encodeURIComponent(id)}`,
+      8000,
+    )
+    const rawMeal = Array.isArray(payload.meals) ? payload.meals[0] : null
+    if (!rawMeal?.idMeal || !rawMeal?.strMeal) return null
+    return mapMealToRecipe(rawMeal)
+  } catch {
+    return null
+  }
+}
+
 function isSimulatedOffline(): boolean {
   if (typeof window === 'undefined') return false
   try {

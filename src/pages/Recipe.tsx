@@ -77,6 +77,7 @@ function RecipePageContent({ id }: { id: string }) {
   const isFav = useFavourites((s) => s.ids.includes(id))
   const toggleFavourite = useFavourites((s) => s.toggleFavourite)
   const planSlots = usePlan((s) => s.slots)
+  const recentRecipes = usePlan((s) => s.recentRecipes)
   const recordRecentRecipes = usePlan((s) => s.recordRecentRecipes)
 
   const fridgeItems = useFridge((s) => s.items)
@@ -104,8 +105,10 @@ function RecipePageContent({ id }: { id: string }) {
     for (const slotRecipe of Object.values(planSlots)) {
       if (slotRecipe && slotRecipe.id === id) return slotRecipe
     }
+    const fromRecent = recentRecipes.find((r) => r.id === id)
+    if (fromRecent) return fromRecent
     return undefined
-  }, [id, recipesById, savedFavMap, planSlots])
+  }, [id, recipesById, savedFavMap, planSlots, recentRecipes])
 
   useEffect(() => {
     if (recipe) {
