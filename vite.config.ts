@@ -6,6 +6,7 @@ import { defineConfig } from 'vitest/config'
 const LOCAL_API_MODULES: Record<string, string> = {
   '/api/health': '/api/health.ts',
   '/api/mealsdb': '/api/mealsdb.ts',
+  '/api/openfoodfacts': '/api/openfoodfacts.ts',
 }
 
 function localApiServerPlugin(envVars: Record<string, string>): Plugin {
@@ -14,6 +15,9 @@ function localApiServerPlugin(envVars: Record<string, string>): Plugin {
     configureServer(server) {
       if (envVars.THEMEALDB_API_KEY && !process.env.THEMEALDB_API_KEY) {
         process.env.THEMEALDB_API_KEY = envVars.THEMEALDB_API_KEY
+      }
+      if (envVars.OPENFOODFACTS_USER_AGENT && !process.env.OPENFOODFACTS_USER_AGENT) {
+        process.env.OPENFOODFACTS_USER_AGENT = envVars.OPENFOODFACTS_USER_AGENT
       }
 
       server.middlewares.use(async (req, res, next) => {
