@@ -56,7 +56,7 @@ describe('mealdb loader, IndexedDB cache, and fallback', () => {
   it('caches fetched recipes in IndexedDB and avoids refetching while cache is fresh', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
-      if (url.includes('list.php?i=list')) {
+      if (url.includes('/api/mealsdb?endpoint=list&i=list')) {
         return new Response(
           JSON.stringify({
             meals: [{ strIngredient: 'Rice' }, { strIngredient: 'Eggs' }],
@@ -64,7 +64,7 @@ describe('mealdb loader, IndexedDB cache, and fallback', () => {
           { status: 200 },
         )
       }
-      if (url.includes('search.php?f=a')) {
+      if (url.includes('/api/mealsdb?endpoint=search&f=a')) {
         return new Response(
           JSON.stringify({
             meals: [

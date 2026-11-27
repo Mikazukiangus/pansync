@@ -3,7 +3,7 @@ import { normalize } from '../lib/matching'
 import type { Recipe, RecipeIngredient } from '../types'
 import fallbackRecipesRaw from './fallback-recipes.json'
 
-const API_BASE = 'https://www.themealdb.com/api/json/v1/1'
+const API_PROXY_PATH = '/api/mealsdb'
 const RECIPES_CACHE_KEY = 'pansync-mealdb-recipes-v1'
 const INGREDIENTS_CACHE_KEY = 'pansync-mealdb-ingredients-v1'
 export const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
@@ -120,21 +120,21 @@ async function fetchJsonWithTimeout<T>(url: string, timeoutMs = 10000): Promise<
 }
 
 /**
- * Fetch all recipes across a..z in parallel from TheMealDB.
+ * Fetch all recipes across a..z in parallel through the serverless /api/mealsdb proxy.
  */
 export async function fetchAllMealDBRecipes(): Promise<Recipe[]> {
   const letters = 'abcdefghijklmnopqrstuvwxyz'.split('')
   const responses = await Promise.all(
     letters.map((letter) =>
       fetchJsonWithTimeout<{ meals: MealDBRawMeal[] | null }>(
-        `${API_BASE}/search.php?f=${letter}`,
+        `${API_PROXY_PATH}?endpoint=search&f=${encodeURIComponent(letter)}`,
       ),
     ),
   )
 
   const byId = new Map<string, Recipe>()
   for (const payload of responses) {
-    if (!payload.meals) continue
+    if (!Array.isArray(payload.meals)) continue
     for (const rawMeal of payload.meals) {
       if (rawMeal?.idMeal && rawMeal?.strMeal) {
         byId.set(String(rawMeal.idMeal), mapMealToRecipe(rawMeal))
@@ -152,9 +152,9 @@ export async function fetchAllMealDBRecipes(): Promise<Recipe[]> {
 export async function fetchMealDBIngredientsList(): Promise<string[]> {
   const data = await fetchJsonWithTimeout<{
     meals: Array<{ strIngredient?: string | null }> | null
-  }>(`${API_BASE}/list.php?i=list`)
+  }>(`${API_PROXY_PATH}?endpoint=list&i=list`)
 
-  if (!data.meals || data.meals.length === 0) {
+  if (!Array.isArray(data.meals) || data.meals.length === 0) {
     throw new Error('Empty ingredient list from TheMealDB')
   }
 
@@ -168,6 +168,14 @@ export async function fetchMealDBIngredientsList(): Promise<string[]> {
     }
   }
   return Array.from(unique.values()).sort((a, b) => a.localeCompare(b))
+}
+
+export async function fetchMealById(id: string): Promise<Recipe | null> {
+  const data = await fetchJsonWithTimeout<{ meals: MealDBRawMeal[] | null }>(
+    `${API_PROXY_PATH}?endpoint=lookup&i=${encodeURIComponent(id)}`,
+  )
+  if (!Array.isArray(data.meals) || data.meals.length === 0) return null
+  return mapMealToRecipe(data.meals[0])
 }
 
 export interface LoadedRecipeDataset {

@@ -205,3 +205,20 @@ it's done
 ```text
 save all the previous instructions into a file named prompts.md and save it in the repo everytime there are new instructions.
 ```
+
+---
+
+## Prompt 8 — `2026-11-27 14:04:03 +08:00`
+
+```text
+1. add a serverless connection that pulls from mealsdb.com using the following guides https://www.themealdb.com/AGENTS.md, https://www.themealdb.com/SKILL.md  and the endpoints at (https://www.themealdb.com/api/spec/openapi-v1.yaml)                                                                                      2. store this in/api at project root level (not the src file)
+   
+   3. include a /health.ts and /mealsdb.ts within the same subfolder
+   
+   4. do not hardcode any key, I will input them manually.    5. let me know if you have any questions to clarify.
+```
+
+### Prompt 8 Clarifications Confirmed
+- **Frontend wiring**: Route frontend (`src/data/mealdb.ts`) through `/api/mealsdb` (keep IndexedDB cache & offline fallback).
+- **Environment variable**: `THEMEALDB_API_KEY` (with `.env.example` template; no hardcoded key).
+- **Runtime & local dev**: Vercel Functions (`api/health.ts` & `api/mealsdb.ts`) + updated `vercel.json` rewrite + local Vite middleware for dev.
