@@ -1,0 +1,536 @@
+[
+  {
+    "id": "fb-fried-rice",
+    "name": "Golden Egg & Scallion Fried Rice",
+    "image": null,
+    "emoji": "🍳",
+    "gradient": "from-amber-100 via-orange-50 to-yellow-100",
+    "prepMinutes": 15,
+    "category": "Side",
+    "area": "Chinese",
+    "isFallback": true,
+    "youtube": null,
+    "ingredients": [
+      { "name": "Rice", "measure": "3 cups chilled" },
+      { "name": "Eggs", "measure": "3 large" },
+      { "name": "Spring Onions", "measure": "4 sliced" },
+      { "name": "Garlic", "measure": "2 cloves minced" },
+      { "name": "Soy Sauce", "measure": "2 tbsp" },
+      { "name": "Vegetable Oil", "measure": "2 tbsp" },
+      { "name": "Black Pepper", "measure": "pinch" }
+    ],
+    "instructions": [
+      "Separate the white and green parts of the spring onions and beat the eggs with a pinch of salt.",
+      "Heat 1 tablespoon of oil in a wide skillet or wok over high heat. Pour in the eggs, scramble until just set into soft ribbons, and transfer to a plate.",
+      "Add the remaining oil, garlic, and spring onion whites. Stir-fry for 30 seconds until fragrant.",
+      "Toss in the cold rice, pressing out any clumps with the back of your spatula until every grain is hot and slightly toasted.",
+      "Drizzle soy sauce around the hot rim of the pan, return the eggs, fold in the green scallions and black pepper, and serve piping hot."
+    ]
+  },
+  {
+    "id": "fb-veggie-frittata",
+    "name": "Kitchen-Sink Spinach & Pepper Frittata",
+    "image": null,
+    "emoji": "🧀",
+    "gradient": "from-yellow-100 via-amber-50 to-emerald-100",
+    "prepMinutes": 25,
+    "category": "Vegetarian",
+    "area": "Italian",
+    "isFallback": true,
+    "youtube": null,
+    "ingredients": [
+      { "name": "Eggs", "measure": "6 large" },
+      { "name": "Baby Spinach", "measure": "2 handfuls" },
+      { "name": "Red Pepper", "measure": "1 diced" },
+      { "name": "Onion", "measure": "1 small sliced" },
+      { "name": "Cheddar Cheese", "measure": "75g grated" },
+      { "name": "Milk", "measure": "3 tbsp" },
+      { "name": "Olive Oil", "measure": "1 tbsp" },
+      { "name": "Salt", "measure": "1/2 tsp" },
+      { "name": "Black Pepper", "measure": "1/4 tsp" }
+    ],
+    "instructions": [
+      "Whisk the eggs, milk, salt, and black pepper together with half of the grated cheese.",
+      "Warm olive oil in an ovenproof non-stick skillet over medium heat. Sauté the onion and diced red pepper for 5 minutes until softened.",
+      "Add the baby spinach and stir for 1 minute until wilted and excess moisture evaporates.",
+      "Pour in the egg mixture, scatter the remaining cheese on top, and cook gently for 4 minutes until the edges set.",
+      "Finish under a hot grill (broiler) for 3 to 4 minutes until puffed and golden brown. Rest briefly before slicing into wedges."
+    ]
+  },
+  {
+    "id": "fb-bubble-squeak",
+    "name": "Bubble & Squeak Crispy Potato Hash",
+    "image": null,
+    "emoji": "🥔",
+    "gradient": "from-amber-100 via-stone-100 to-emerald-100",
+    "prepMinutes": 20,
+    "category": "Breakfast",
+    "area": "British",
+    "isFallback": true,
+    "youtube": null,
+    "ingredients": [
+      { "name": "Potatoes", "measure": "450g cooked" },
+      { "name": "Cabbage", "measure": "150g shredded" },
+      { "name": "Onion", "measure": "1 thinly sliced" },
+      { "name": "Butter", "measure": "2 tbsp" },
+      { "name": "Eggs", "measure": "2 for topping" },
+      { "name": "Salt", "measure": "to taste" },
+      { "name": "Black Pepper", "measure": "to taste" }
+    ],
+    "instructions": [
+      "Roughly crush or chop the leftover cooked potatoes in a bowl and season well with salt and black pepper.",
+      "Melt butter in a heavy frying pan over medium heat and fry the sliced onion and shredded cabbage for 6 minutes until tender and lightly charred.",
+      "Tip the potatoes into the pan, fold everything together, and press firmly into an even cake.",
+      "Cook undisturbed for 5 to 6 minutes until a deep golden crust forms underneath, then flip in sections to crisp the other side.",
+      "Top with fried or poached eggs and serve immediately."
+    ]
+  },
+  {
+    "id": "fb-chicken-fajita-wraps",
+    "name": "Sizzling Leftover Chicken & Pepper Wraps",
+    "image": null,
+    "emoji": "🌯",
+    "gradient": "from-orange-100 via-red-50 to-amber-100",
+    "prepMinutes": 20,
+    "category": "Chicken",
+    "area": "Mexican",
+    "isFallback": true,
+    "youtube": null,
+    "ingredients": [
+      { "name": "Chicken Breast", "measure": "300g sliced" },
+      { "name": "Red Pepper", "measure": "1 sliced" },
+      { "name": "Onion", "measure": "1 sliced" },
+      { "name": "Garlic", "measure": "2 cloves" },
+      { "name": "Cumin", "measure": "1 tsp" },
+      { "name": "Tortillas", "measure": "4 flour wraps" },
+      { "name": "Olive Oil", "measure": "1 tbsp" },
+      { "name": "Salt", "measure": "1/2 tsp" }
+    ],
+    "instructions": [
+      "Toss sliced chicken, red pepper, onion, garlic, cumin, salt, and olive oil together in a bowl.",
+      "Heat a large skillet until smoking hot and sear the chicken and vegetables for 6 to 8 minutes until cooked through and blistered at the edges.",
+      "Warm the tortillas in a dry pan for 20 seconds per side.",
+      "Pile the sizzling filling into the warm wraps, roll tightly, and slice on the diagonal."
+    ]
+  },
+  {
+    "id": "fb-garlic-noodles",
+    "name": "10-Minute Scallion & Garlic Butter Noodles",
+    "image": null,
+    "emoji": "🍜",
+    "gradient": "from-amber-100 via-yellow-50 to-lime-100",
+    "prepMinutes": 12,
+    "category": "Pasta",
+    "area": "Asian",
+    "isFallback": true,
+    "youtube": null,
+    "ingredients": [
+      { "name": "Egg Noodles", "measure": "250g" },
+      { "name": "Butter", "measure": "2 tbsp" },
+      { "name": "Garlic", "measure": "4 cloves minced" },
+      { "name": "Spring Onions", "measure": "4 chopped" },
+      { "name": "Soy Sauce", "measure": "2 tbsp" },
+      { "name": "Eggs", "measure": "1 fried (optional)" }
+    ],
+    "instructions": [
+      "Boil the noodles until al dente, reserving a splash of starchy cooking water before draining.",
+      "Melt the butter over medium-low heat and gently sizzle the minced garlic and half the spring onions for 2 minutes without burning.",
+      "Stir in the soy sauce, toss in the hot noodles and a splash of cooking water, and coat until glossy.",
+      "Shower with the remaining fresh green scallions and crown with a crispy fried egg if desired."
+    ]
+  },
+  {
+    "id": "fb-spinach-chickpea-skillet",
+    "name": "Smoky Garlic Chickpea & Spinach Skillet",
+    "image": null,
+    "emoji": "🥬",
+    "gradient": "from-emerald-100 via-teal-50 to-amber-50",
+    "prepMinutes": 15,
+    "category": "Vegan",
+    "area": "Spanish",
+    "isFallback": true,
+    "youtube": null,
+    "ingredients": [
+      { "name": "Chickpeas", "measure": "1 can (400g)" },
+      { "name": "Baby Spinach", "measure": "150g" },
+      { "name": "Garlic", "measure": "3 cloves sliced" },
+      { "name": "Paprika", "measure": "1 tsp" },
+      { "name": "Lemon", "measure": "1/2 juiced" },
+      { "name": "Olive Oil", "measure": "2 tbsp" },
+      { "name": "Salt", "measure": "to taste" }
+    ],
+    "instructions": [
+      "Drain and rinse the chickpeas, patting them dry so they crisp nicely in the pan.",
+      "Warm olive oil in a skillet, add sliced garlic and paprika, and cook for 45 seconds until aromatic.",
+      "Add the chickpeas and fry for 5 minutes, crushing a few lightly with a spoon to thicken the pan juices.",
+      "Fold in the baby spinach by the handful until just wilted, finish with fresh lemon juice and salt, and serve."
+    ]
+  },
+  {
+    "id": "fb-creamy-tomato-chicken-pasta",
+    "name": "Creamy Tomato & Chicken Skillet Pasta",
+    "image": null,
+    "emoji": "🍝",
+    "gradient": "from-red-100 via-orange-50 to-amber-100",
+    "prepMinutes": 22,
+    "category": "Pasta",
+    "area": "Italian",
+    "isFallback": true,
+    "youtube": null,
+    "ingredients": [
+      { "name": "Pasta", "measure": "250g" },
+      { "name": "Chicken Breast", "measure": "250g diced" },
+      { "name": "Canned Tomatoes", "measure": "400g" },
+      { "name": "Onion", "measure": "1 finely chopped" },
+      { "name": "Garlic", "measure": "2 cloves" },
+      { "name": "Heavy Cream", "measure": "80ml" },
+      { "name": "Baby Spinach", "measure": "1 handful" },
+      { "name": "Olive Oil", "measure": "1 tbsp" }
+    ],
+    "instructions": [
+      "Cook pasta in salted boiling water until al dente, saving half a cup of pasta water.",
+      "Sauté diced chicken and onion in olive oil until golden, then stir in the minced garlic for 1 minute.",
+      "Pour in the canned tomatoes, simmer for 8 minutes to thicken, and swirl in the cream and spinach.",
+      "Toss the drained pasta into the blush sauce, loosening with pasta water as needed."
+    ]
+  },
+  {
+    "id": "fb-red-lentil-carrot-soup",
+    "name": "Warming Red Lentil & Roasted Carrot Soup",
+    "image": null,
+    "emoji": "🍲",
+    "gradient": "from-orange-100 via-amber-50 to-yellow-100",
+    "prepMinutes": 30,
+    "category": "Vegan",
+    "area": "Middle Eastern",
+    "isFallback": true,
+    "youtube": null,
+    "ingredients": [
+      { "name": "Red Lentils", "measure": "200g rinsed" },
+      { "name": "Carrots", "measure": "3 chopped" },
+      { "name": "Onion", "measure": "1 diced" },
+      { "name": "Garlic", "measure": "2 cloves" },
+      { "name": "Cumin", "measure": "1 tsp" },
+      { "name": "Vegetable Stock", "measure": "900ml" },
+      { "name": "Lemon", "measure": "1/2 juiced" },
+      { "name": "Olive Oil", "measure": "1 tbsp" }
+    ],
+    "instructions": [
+      "Sweat the onion and carrots in olive oil over medium heat for 6 minutes until glossy.",
+      "Stir in garlic and ground cumin for 30 seconds, then add rinsed red lentils and vegetable stock.",
+      "Simmer gently for 18 to 20 minutes until the lentils collapse and the carrots are tender.",
+      "Blend half or all of the soup to your preferred texture and brighten with lemon juice before serving."
+    ]
+  },
+  {
+    "id": "fb-courgette-shakshuka",
+    "name": "Courgette & Red Pepper Baked Eggs (Shakshuka)",
+    "image": null,
+    "emoji": "🍅",
+    "gradient": "from-red-100 via-rose-50 to-orange-100",
+    "prepMinutes": 25,
+    "category": "Vegetarian",
+    "area": "Tunisian",
+    "isFallback": true,
+    "youtube": null,
+    "ingredients": [
+      { "name": "Eggs", "measure": "4 large" },
+      { "name": "Canned Tomatoes", "measure": "400g" },
+      { "name": "Zucchini", "measure": "1 diced" },
+      { "name": "Red Pepper", "measure": "1 diced" },
+      { "name": "Onion", "measure": "1 chopped" },
+      { "name": "Garlic", "measure": "2 cloves" },
+      { "name": "Cumin", "measure": "1 tsp" },
+      { "name": "Olive Oil", "measure": "1 tbsp" }
+    ],
+    "instructions": [
+      "Cook onion, zucchini, and red pepper in olive oil for 7 minutes until tender.",
+      "Add garlic and cumin, pour in the canned tomatoes, and simmer for 8 minutes until thick and jammy.",
+      "Make 4 wells in the sauce with the back of a spoon and crack an egg into each well.",
+      "Cover the pan and cook on low for 5 to 6 minutes until egg whites are set and yolks remain runny."
+    ]
+  },
+  {
+    "id": "fb-black-bean-quesadilla",
+    "name": "Crispy Black Bean, Pepper & Cheddar Quesadillas",
+    "image": null,
+    "emoji": "🌮",
+    "gradient": "from-amber-100 via-orange-50 to-lime-100",
+    "prepMinutes": 15,
+    "category": "Vegetarian",
+    "area": "Mexican",
+    "isFallback": true,
+    "youtube": null,
+    "ingredients": [
+      { "name": "Tortillas", "measure": "4 medium" },
+      { "name": "Black Beans", "measure": "1 can drained" },
+      { "name": "Cheddar Cheese", "measure": "120g grated" },
+      { "name": "Red Pepper", "measure": "1/2 finely diced" },
+      { "name": "Spring Onions", "measure": "3 sliced" },
+      { "name": "Vegetable Oil", "measure": "1 tsp" }
+    ],
+    "instructions": [
+      "Lightly mash half the black beans in a bowl so they bind together, then mix in the remaining beans, diced pepper, and spring onions.",
+      "Lay tortillas flat, scatter cheese and bean mixture over half of each tortilla, and fold into half-moons.",
+      "Crisp in a lightly oiled skillet for 2 to 3 minutes per side until deeply golden and oozing melted cheddar."
+    ]
+  },
+  {
+    "id": "fb-ginger-chicken-congee",
+    "name": "Silky Ginger & Scallion Rice Porridge",
+    "image": null,
+    "emoji": "🍚",
+    "gradient": "from-stone-100 via-amber-50 to-emerald-50",
+    "prepMinutes": 20,
+    "category": "Chicken",
+    "area": "Chinese",
+    "isFallback": true,
+    "youtube": null,
+    "ingredients": [
+      { "name": "Rice", "measure": "2 cups cooked" },
+      { "name": "Chicken Breast", "measure": "200g shredded" },
+      { "name": "Chicken Stock", "measure": "750ml" },
+      { "name": "Ginger", "measure": "2cm matchsticks" },
+      { "name": "Spring Onions", "measure": "3 sliced" },
+      { "name": "Soy Sauce", "measure": "1 tbsp" }
+    ],
+    "instructions": [
+      "Combine cooked rice, chicken stock, and ginger matchsticks in a saucepan and bring to a lively simmer.",
+      "Cook for 12 minutes, stirring often so the leftover rice breaks down into a velvety porridge.",
+      "Add shredded chicken to warm through for 3 minutes, ladle into bowls, and top with soy sauce and scallions."
+    ]
+  },
+  {
+    "id": "fb-crispy-beef-rice-bowl",
+    "name": "Savory Minced Beef & Garlic Rice Bowl",
+    "image": null,
+    "emoji": "🥘",
+    "gradient": "from-orange-100 via-amber-50 to-stone-100",
+    "prepMinutes": 18,
+    "category": "Beef",
+    "area": "Korean",
+    "isFallback": true,
+    "youtube": null,
+    "ingredients": [
+      { "name": "Ground Beef", "measure": "300g" },
+      { "name": "Rice", "measure": "2 cups cooked" },
+      { "name": "Garlic", "measure": "3 cloves minced" },
+      { "name": "Spring Onions", "measure": "3 sliced" },
+      { "name": "Soy Sauce", "measure": "2 tbsp" },
+      { "name": "Sugar", "measure": "1 tsp" },
+      { "name": "Eggs", "measure": "2 fried" }
+    ],
+    "instructions": [
+      "Brown the ground beef in a hot skillet, letting it caramelize before breaking it into small crumbles.",
+      "Add minced garlic, soy sauce, and sugar, tossing for 2 minutes until glazed and sticky.",
+      "Spoon over bowls of hot rice and finish with fried eggs and sliced spring onions."
+    ]
+  },
+  {
+    "id": "fb-cauliflower-potato-curry",
+    "name": "One-Pan Potato, Cauliflower & Spinach Curry",
+    "image": null,
+    "emoji": "🍛",
+    "gradient": "from-yellow-100 via-amber-100 to-orange-100",
+    "prepMinutes": 28,
+    "category": "Vegan",
+    "area": "Indian",
+    "isFallback": true,
+    "youtube": null,
+    "ingredients": [
+      { "name": "Potatoes", "measure": "300g cubed" },
+      { "name": "Cauliflower", "measure": "1/2 head florets" },
+      { "name": "Onion", "measure": "1 chopped" },
+      { "name": "Garlic", "measure": "2 cloves" },
+      { "name": "Curry Powder", "measure": "2 tsp" },
+      { "name": "Coconut Milk", "measure": "400ml" },
+      { "name": "Baby Spinach", "measure": "100g" },
+      { "name": "Vegetable Oil", "measure": "1 tbsp" }
+    ],
+    "instructions": [
+      "Soften onion and garlic in oil over medium heat, then bloom the curry powder for 1 minute.",
+      "Add cubed potatoes, cauliflower florets, and coconut milk; cover and simmer for 15 minutes until tender.",
+      "Fold in the baby spinach until wilted, season with salt, and serve warm."
+    ]
+  },
+  {
+    "id": "fb-tuna-sweetcorn-melt",
+    "name": "Golden Tuna, Sweetcorn & Scallion Melt",
+    "image": null,
+    "emoji": "🥪",
+    "gradient": "from-amber-100 via-yellow-50 to-orange-50",
+    "prepMinutes": 12,
+    "category": "Seafood",
+    "area": "British",
+    "isFallback": true,
+    "youtube": null,
+    "ingredients": [
+      { "name": "Bread", "measure": "4 thick slices" },
+      { "name": "Canned Tuna", "measure": "1 can drained" },
+      { "name": "Sweetcorn", "measure": "4 tbsp" },
+      { "name": "Spring Onions", "measure": "2 finely sliced" },
+      { "name": "Mayonnaise", "measure": "2 tbsp" },
+      { "name": "Cheddar Cheese", "measure": "80g grated" },
+      { "name": "Black Pepper", "measure": "generous grind" }
+    ],
+    "instructions": [
+      "Mix drained tuna, sweetcorn, sliced spring onions, mayonnaise, and plenty of black pepper.",
+      "Lightly toast the bread slices, pile on the tuna mixture, and blanket with grated cheddar.",
+      "Grill (broil) for 3 minutes until bubbling and bronzed."
+    ]
+  },
+  {
+    "id": "fb-white-bean-ribollita",
+    "name": "Rustic Tuscan White Bean & Vegetable Stew",
+    "image": null,
+    "emoji": "🥣",
+    "gradient": "from-rose-100 via-amber-50 to-emerald-50",
+    "prepMinutes": 25,
+    "category": "Vegetarian",
+    "area": "Italian",
+    "isFallback": true,
+    "youtube": null,
+    "ingredients": [
+      { "name": "Cannellini Beans", "measure": "1 can (400g)" },
+      { "name": "Carrots", "measure": "2 diced" },
+      { "name": "Celery", "measure": "2 stalks diced" },
+      { "name": "Onion", "measure": "1 diced" },
+      { "name": "Garlic", "measure": "2 cloves" },
+      { "name": "Canned Tomatoes", "measure": "400g" },
+      { "name": "Bread", "measure": "2 stale slices torn" },
+      { "name": "Olive Oil", "measure": "2 tbsp" }
+    ],
+    "instructions": [
+      "Cook onion, carrots, and celery gently in olive oil for 8 minutes until sweet and soft.",
+      "Add garlic, canned tomatoes, cannellini beans, and 250ml of water; simmer for 12 minutes.",
+      "Stir in torn pieces of leftover bread to thicken the broth naturally and drizzle with extra olive oil."
+    ]
+  },
+  {
+    "id": "fb-halloumi-aubergine-bowl",
+    "name": "Charred Aubergine & Golden Halloumi Salad",
+    "image": null,
+    "emoji": "🍆",
+    "gradient": "from-purple-100 via-rose-50 to-amber-50",
+    "prepMinutes": 22,
+    "category": "Vegetarian",
+    "area": "Mediterranean",
+    "isFallback": true,
+    "youtube": null,
+    "ingredients": [
+      { "name": "Eggplant", "measure": "1 cubed" },
+      { "name": "Halloumi", "measure": "200g sliced" },
+      { "name": "Tomatoes", "measure": "2 chopped" },
+      { "name": "Arugula", "measure": "2 handfuls" },
+      { "name": "Lemon", "measure": "1/2 juiced" },
+      { "name": "Olive Oil", "measure": "2 tbsp" }
+    ],
+    "instructions": [
+      "Pan-roast cubed eggplant in olive oil over medium-high heat for 8 to 10 minutes until golden and tender inside.",
+      "Sear sliced halloumi in the same pan for 2 minutes per side until blistered.",
+      "Toss arugula and fresh tomatoes with lemon juice and olive oil, then pile warm eggplant and halloumi on top."
+    ]
+  },
+  {
+    "id": "fb-broccoli-bacon-bake",
+    "name": "Broccoli, Bacon & Cheddar Crustless Bake",
+    "image": null,
+    "emoji": "🥦",
+    "gradient": "from-emerald-100 via-lime-50 to-amber-100",
+    "prepMinutes": 30,
+    "category": "Breakfast",
+    "area": "French",
+    "isFallback": true,
+    "youtube": null,
+    "ingredients": [
+      { "name": "Eggs", "measure": "5 large" },
+      { "name": "Broccoli", "measure": "200g small florets" },
+      { "name": "Bacon", "measure": "4 rashers chopped" },
+      { "name": "Cheddar Cheese", "measure": "100g grated" },
+      { "name": "Onion", "measure": "1/2 diced" },
+      { "name": "Milk", "measure": "60ml" }
+    ],
+    "instructions": [
+      "Preheat oven to 190°C (375°F). Crisp chopped bacon with diced onion in a pan, then toss in tiny broccoli florets for 3 minutes.",
+      "Whisk eggs, milk, black pepper, and most of the cheddar in a bowl.",
+      "Combine everything in a greased baking dish, scatter remaining cheese over the top, and bake for 20 minutes until set."
+    ]
+  },
+  {
+    "id": "fb-sweet-potato-peanut-stew",
+    "name": "Velvety Sweet Potato, Tomato & Peanut Stew",
+    "image": null,
+    "emoji": "🥜",
+    "gradient": "from-orange-100 via-amber-100 to-rose-50",
+    "prepMinutes": 28,
+    "category": "Vegan",
+    "area": "West African",
+    "isFallback": true,
+    "youtube": null,
+    "ingredients": [
+      { "name": "Sweet Potatoes", "measure": "400g peeled & cubed" },
+      { "name": "Peanut Butter", "measure": "3 tbsp" },
+      { "name": "Canned Tomatoes", "measure": "400g" },
+      { "name": "Onion", "measure": "1 chopped" },
+      { "name": "Garlic", "measure": "2 cloves" },
+      { "name": "Ginger", "measure": "1 tbsp grated" },
+      { "name": "Baby Spinach", "measure": "100g" },
+      { "name": "Vegetable Stock", "measure": "400ml" }
+    ],
+    "instructions": [
+      "Sauté onion, garlic, and ginger in a pot with a splash of oil for 4 minutes.",
+      "Add cubed sweet potatoes, canned tomatoes, and vegetable stock; simmer covered for 15 minutes until tender.",
+      "Whisk peanut butter with a ladle of hot broth until smooth, stir back into the pot, and wilt in the spinach."
+    ]
+  },
+  {
+    "id": "fb-lemon-prawn-courgette-pasta",
+    "name": "Lemon, Garlic Prawn & Courgette Ribbon Pasta",
+    "image": null,
+    "emoji": "🍤",
+    "gradient": "from-yellow-100 via-lime-50 to-teal-50",
+    "prepMinutes": 18,
+    "category": "Seafood",
+    "area": "Italian",
+    "isFallback": true,
+    "youtube": null,
+    "ingredients": [
+      { "name": "Pasta", "measure": "220g" },
+      { "name": "Shrimp", "measure": "200g peeled" },
+      { "name": "Zucchini", "measure": "1 ribboned" },
+      { "name": "Garlic", "measure": "3 cloves sliced" },
+      { "name": "Lemon", "measure": "1 zest & juice" },
+      { "name": "Butter", "measure": "1 tbsp" },
+      { "name": "Olive Oil", "measure": "1 tbsp" }
+    ],
+    "instructions": [
+      "Boil pasta in salted water until al dente and reserve 60ml of cooking water.",
+      "Sear shrimp and sliced garlic in olive oil and butter for 2 minutes until pink, then toss in zucchini ribbons for 1 minute.",
+      "Add drained pasta, lemon zest, lemon juice, and reserved pasta water, tossing vigorously until glossy."
+    ]
+  },
+  {
+    "id": "fb-banana-oat-pancakes",
+    "name": "3-Ingredient Ripe Banana & Egg Oat Pancakes",
+    "image": null,
+    "emoji": "🥞",
+    "gradient": "from-amber-100 via-yellow-50 to-stone-100",
+    "prepMinutes": 15,
+    "category": "Dessert",
+    "area": "American",
+    "isFallback": true,
+    "youtube": null,
+    "ingredients": [
+      { "name": "Bananas", "measure": "2 ripe" },
+      { "name": "Eggs", "measure": "2 large" },
+      { "name": "Oats", "measure": "80g rolled" },
+      { "name": "Cinnamon", "measure": "1/2 tsp" },
+      { "name": "Butter", "measure": "1 tsp for frying" }
+    ],
+    "instructions": [
+      "Mash the ripe bananas thoroughly in a bowl, then whisk in the eggs, oats, and cinnamon; let rest 3 minutes so the oats soften.",
+      "Melt a little butter in a non-stick pan over medium-low heat and spoon in small rounds of batter.",
+      "Cook for 2 minutes per side until golden and fluffy."
+    ]
+  }
+]
