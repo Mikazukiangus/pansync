@@ -1,5 +1,5 @@
-import { Heart, Search, X } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { Heart, RotateCcw, Search, X } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AddToPlanModal } from '../components/AddToPlanModal'
 import { RecipeCard } from '../components/RecipeCard'
@@ -15,12 +15,28 @@ export function Favourites() {
   const { recipesById } = useRecipes()
   const favIds = useFavourites((s) => s.ids)
   const savedRecipes = useFavourites((s) => s.recipesById)
+  const lastRemoved = useFavourites((s) => s.lastRemoved)
+  const undoRemoveFavourite = useFavourites((s) => s.undoRemoveFavourite)
+  const dismissLastRemoved = useFavourites((s) => s.dismissLastRemoved)
   const fridgeItems = useFridge((s) => s.items)
   const manualIngredients = useSearch((s) => s.manualIngredients)
   const staples = useSettings((s) => s.staples)
 
   const [planningRecipe, setPlanningRecipe] = useState<Recipe | null>(null)
   const [query, setQuery] = useState('')
+  const [clearedQueryUndo, setClearedQueryUndo] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!lastRemoved) return
+    const timer = setTimeout(() => dismissLastRemoved(), 6000)
+    return () => clearTimeout(timer)
+  }, [lastRemoved, dismissLastRemoved])
+
+  useEffect(() => {
+    if (!clearedQueryUndo) return
+    const timer = setTimeout(() => setClearedQueryUndo(null), 5000)
+    return () => clearTimeout(timer)
+  }, [clearedQueryUndo])
 
   const favouriteRecipes = useMemo(() => {
     return favIds
@@ -44,6 +60,12 @@ export function Favourites() {
     [manualIngredients, fridgeItems],
   )
 
+  const handleClearQuery = () => {
+    if (!query) return
+    setClearedQueryUndo(query)
+    setQuery('')
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -58,26 +80,81 @@ export function Favourites() {
         </span>
       </div>
 
-      {favouriteRecipes.length > 3 && (
-        <div className="relative max-w-sm">
-          <Search className="pointer-events-none absolute top-3 left-3.5 h-4 w-4 text-ink-subtle" />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            aria-label="Filter saved favourites"
-            placeholder="Filter favourites by name or cuisine..."
-            className="w-full rounded-2xl border border-parchment bg-white py-2.5 pr-9 pl-10 text-sm text-ink placeholder:text-ink-subtle focus:border-sage-500 focus:outline-none"
-          />
-          {query && (
+      {lastRemoved && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-sage-200 bg-sage-50 px-4 py-3 text-sm font-medium text-sage-800"
+        >
+          <span>
+            Removed <strong>&ldquo;{lastRemoved.recipe.name}&rdquo;</strong> from Favourites.
+          </span>
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setQuery('')}
-              aria-label="Clear filter"
-              className="absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-full text-ink-subtle hover:bg-cream hover:text-ink"
+              onClick={undoRemoveFavourite}
+              className="inline-flex min-h-8 items-center gap-1.5 rounded-xl bg-white px-3 py-1.5 text-xs font-semibold text-sage-800 ring-1 ring-sage-200 transition hover:bg-sage-100"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Undo
+            </button>
+            <button
+              type="button"
+              onClick={dismissLastRemoved}
+              aria-label="Dismiss undo notice"
+              className="flex h-7 w-7 items-center justify-center rounded-lg text-ink-subtle transition hover:bg-white hover:text-ink"
             >
               <X className="h-3.5 w-3.5" />
             </button>
+          </div>
+        </div>
+      )}
+
+      {favouriteRecipes.length > 3 && (
+        <div className="space-y-2">
+          <div className="relative max-w-sm">
+            <Search className="pointer-events-none absolute top-3 left-3.5 h-4 w-4 text-ink-subtle" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value)
+                if (clearedQueryUndo) setClearedQueryUndo(null)
+              }}
+              aria-label="Filter saved favourites"
+              placeholder="Filter favourites by name or cuisine..."
+              className="w-full rounded-2xl border border-parchment bg-white py-2.5 pr-9 pl-10 text-sm text-ink placeholder:text-ink-subtle focus:border-sage-500 focus:outline-none"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={handleClearQuery}
+                aria-label="Clear filter"
+                className="absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-full text-ink-subtle hover:bg-cream hover:text-ink"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+          {clearedQueryUndo && !query && (
+            <div
+              role="status"
+              aria-live="polite"
+              className="inline-flex items-center gap-2 rounded-xl border border-parchment bg-white px-3 py-1.5 text-xs text-ink-muted"
+            >
+              <span>Cleared filter &ldquo;{clearedQueryUndo}&rdquo;.</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery(clearedQueryUndo)
+                  setClearedQueryUndo(null)
+                }}
+                className="inline-flex items-center gap-1 font-semibold text-sage-700 hover:underline"
+              >
+                <RotateCcw className="h-3 w-3" />
+                Undo
+              </button>
+            </div>
           )}
         </div>
       )}
@@ -108,7 +185,7 @@ export function Favourites() {
           </p>
           <button
             type="button"
-            onClick={() => setQuery('')}
+            onClick={handleClearQuery}
             className="mt-3 min-h-9 rounded-xl bg-sage-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-sage-700"
           >
             Show all favourites

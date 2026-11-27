@@ -407,3 +407,11 @@ let me know when this is done.
 ```text
 figure how to Help users recognise, diagnose and recover from errors: When no matching recipes are found, explain why and suggest alternatives, such as adding one more ingredient or adjusting dietary filters.
 ```
+
+---
+
+## Prompt 29 — `2026-11-27 16:03:57 +08:00`
+
+```text
+1. Flexibility amd efficiency of use , when clicking on a date in the calendar, link to the actual date instead of the week and user has to scroll to find the particular selected date. There is some cognitive dissonance when it links to the start of the week instead of user selected date. 2.When I delete ingredient/dishes from the search bar/My Favourite list, there is no undo action. Heuristic 3, User control and freedom, severity 1.
+```

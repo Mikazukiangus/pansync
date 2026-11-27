@@ -4,6 +4,7 @@ import {
   Loader2,
   Refrigerator,
   RefreshCw,
+  RotateCcw,
   Search,
   Sparkles,
   UtensilsCrossed,
@@ -33,6 +34,7 @@ import {
   diagnoseIngredientNoMatch,
   diagnosePriorityOnlyNoMatch,
 } from '../lib/recovery'
+import { useFavourites } from '../store/useFavourites'
 import { useFridge } from '../store/useFridge'
 import { usePlan } from '../store/usePlan'
 import { useSearch } from '../store/useSearch'
@@ -72,6 +74,9 @@ export function Find() {
   const togglePriority = useSettings((s) => s.toggleDietaryPreference)
   const clearPriorities = useSettings((s) => s.clearDietaryPreferences)
   const recordRecentRecipes = usePlan((s) => s.recordRecentRecipes)
+  const lastRemovedFav = useFavourites((s) => s.lastRemoved)
+  const undoRemoveFavourite = useFavourites((s) => s.undoRemoveFavourite)
+  const dismissLastRemovedFav = useFavourites((s) => s.dismissLastRemoved)
 
   const {
     searchMode,
@@ -83,6 +88,7 @@ export function Find() {
     setDishQuery,
     clearDishQuery,
     addIngredients,
+    setIngredients,
     removeIngredient,
     clearIngredients,
     setFridgeMode,
@@ -101,6 +107,24 @@ export function Find() {
     recipes: Recipe[]
     fromNetwork: boolean
   } | null>(null)
+  const [searchUndo, setSearchUndo] = useState<
+    | {
+        kind: 'ingredients'
+        message: string
+        previousIngredients: string[]
+      }
+    | {
+        kind: 'dish'
+        message: string
+        previousQuery: string
+        previousResult: {
+          query: string
+          recipes: Recipe[]
+          fromNetwork: boolean
+        } | null
+      }
+    | null
+  >(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const dishInputRef = useRef<HTMLInputElement>(null)
   const dishRequestIdRef = useRef(0)
@@ -184,6 +208,75 @@ export function Find() {
     const timer = setTimeout(() => setPlanNotice(null), 3200)
     return () => clearTimeout(timer)
   }, [planNotice])
+
+  useEffect(() => {
+    if (!searchUndo) return
+    const timer = setTimeout(() => setSearchUndo(null), 6000)
+    return () => clearTimeout(timer)
+  }, [searchUndo])
+
+  useEffect(() => {
+    if (!lastRemovedFav) return
+    const timer = setTimeout(() => dismissLastRemovedFav(), 6000)
+    return () => clearTimeout(timer)
+  }, [lastRemovedFav, dismissLastRemovedFav])
+
+  const handleRemoveIngredientWithUndo = (name: string) => {
+    const snapshot = [...manualIngredients]
+    removeIngredient(name)
+    setSearchUndo({
+      kind: 'ingredients',
+      message: `Removed "${name}" from search.`,
+      previousIngredients: snapshot,
+    })
+  }
+
+  const handleClearIngredientsWithUndo = () => {
+    if (manualIngredients.length === 0) return
+    const snapshot = [...manualIngredients]
+    clearIngredients()
+    setSearchUndo({
+      kind: 'ingredients',
+      message:
+        snapshot.length === 1
+          ? `Removed "${snapshot[0]}" from search.`
+          : `Cleared ${snapshot.length} ingredients from search.`,
+      previousIngredients: snapshot,
+    })
+  }
+
+  const handleClearDishWithUndo = () => {
+    if (!dishQuery) return
+    const prevQuery = dishQuery
+    const prevResult = dishSearchResult
+    clearDishQuery()
+    setDishSearchResult(null)
+    dishInputRef.current?.focus()
+    setSearchUndo({
+      kind: 'dish',
+      message: `Cleared dish search "${prevQuery.trim() || prevQuery}".`,
+      previousQuery: prevQuery,
+      previousResult: prevResult,
+    })
+  }
+
+  const handleUndoSearchDelete = () => {
+    if (!searchUndo) return
+    if (searchUndo.kind === 'ingredients') {
+      setSearchMode('ingredients')
+      setFridgeMode(false)
+      setIngredients(searchUndo.previousIngredients)
+    } else {
+      setSearchMode('dish')
+      setDishQuery(searchUndo.previousQuery)
+      if (searchUndo.previousResult) {
+        setDishSearchResult(searchUndo.previousResult)
+      } else {
+        triggerImmediateDishSearch(searchUndo.previousQuery)
+      }
+    }
+    setSearchUndo(null)
+  }
 
   const activeIngredients = useMemo(
     () => (fridgeMode ? fridgeItems.map((f) => f.name) : manualIngredients),
@@ -512,6 +605,36 @@ export function Find() {
         </div>
       )}
 
+      {lastRemovedFav && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-sage-200 bg-sage-50 px-4 py-3 text-sm font-medium text-sage-800"
+        >
+          <span>
+            Removed <strong>&ldquo;{lastRemovedFav.recipe.name}&rdquo;</strong> from Favourites.
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={undoRemoveFavourite}
+              className="inline-flex min-h-8 items-center gap-1.5 rounded-xl bg-white px-3 py-1.5 text-xs font-semibold text-sage-800 ring-1 ring-sage-200 transition hover:bg-sage-100"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Undo
+            </button>
+            <button
+              type="button"
+              onClick={dismissLastRemovedFav}
+              aria-label="Dismiss favourite undo notice"
+              className="flex h-7 w-7 items-center justify-center rounded-lg text-ink-subtle transition hover:bg-white hover:text-ink"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Hero Search Section */}
       <section className="rounded-3xl border border-parchment bg-linear-to-br from-white via-cream to-sage-100/75 p-6 shadow-xs sm:p-8">
         <div className="max-w-3xl">
@@ -645,11 +768,7 @@ export function Find() {
                 {dishQuery && (
                   <button
                     type="button"
-                    onClick={() => {
-                      clearDishQuery()
-                      setDishSearchResult(null)
-                      dishInputRef.current?.focus()
-                    }}
+                    onClick={handleClearDishWithUndo}
                     aria-label="Clear dish search"
                     className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-ink-subtle transition hover:bg-cream hover:text-ink"
                   >
@@ -753,11 +872,42 @@ export function Find() {
             <IngredientInput
               ingredients={manualIngredients}
               suggestions={ingredientSuggestions}
-              onAdd={addIngredients}
-              onRemove={removeIngredient}
-              onClear={clearIngredients}
+              onAdd={(raw) => {
+                setSearchUndo(null)
+                addIngredients(raw)
+              }}
+              onRemove={handleRemoveIngredientWithUndo}
+              onClear={handleClearIngredientsWithUndo}
               externalInputRef={searchInputRef}
             />
+          )}
+
+          {searchUndo && (
+            <div
+              role="status"
+              aria-live="polite"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-sage-200 bg-white/95 px-3.5 py-2.5 text-xs font-medium text-sage-800 shadow-2xs"
+            >
+              <span>{searchUndo.message}</span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={handleUndoSearchDelete}
+                  className="inline-flex min-h-8 items-center gap-1 rounded-xl bg-sage-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-sage-700"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Undo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSearchUndo(null)}
+                  aria-label="Dismiss search undo notice"
+                  className="flex h-7 w-7 items-center justify-center rounded-lg text-ink-subtle transition hover:bg-cream hover:text-ink"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </section>
@@ -869,11 +1019,7 @@ export function Find() {
             onTogglePriority={togglePriority}
             onClearPriorities={clearPriorities}
             onRemoveExclusion={removeExcluded}
-            onClearDishSearch={() => {
-              clearDishQuery()
-              setDishSearchResult(null)
-              dishInputRef.current?.focus()
-            }}
+            onClearDishSearch={handleClearDishWithUndo}
           />
         ) : (
           <div className="space-y-6">
@@ -1028,7 +1174,7 @@ export function Find() {
           onClearPriorities={clearPriorities}
           onRemoveExclusion={removeExcluded}
           onSwitchToDishSearch={handleSwitchToDishSearch}
-          onClearIngredients={clearIngredients}
+          onClearIngredients={handleClearIngredientsWithUndo}
         />
       ) : (
         <div className="space-y-6">

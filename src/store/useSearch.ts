@@ -13,6 +13,7 @@ interface SearchState {
   setDishQuery: (query: string) => void
   clearDishQuery: () => void
   addIngredients: (rawInput: string) => void
+  setIngredients: (items: readonly string[]) => void
   removeIngredient: (name: string) => void
   clearIngredients: () => void
   setFridgeMode: (enabled: boolean) => void
@@ -46,6 +47,7 @@ export const useSearch = create<SearchState>((set) => ({
       return { manualIngredients: next }
     })
   },
+  setIngredients: (items) => set({ manualIngredients: [...items] }),
   removeIngredient: (name) =>
     set((state) => ({
       manualIngredients: state.manualIngredients.filter(

@@ -166,6 +166,10 @@ export function Plan() {
   const [calendarYear, setCalendarYear] = useState<number>(() => today.getFullYear())
   const [calendarMonth, setCalendarMonth] = useState<number>(() => today.getMonth())
   const [selectedDateYmd, setSelectedDateYmd] = useState<string>(() => todayYmd)
+  const [scrollRequest, setScrollRequest] = useState<{
+    ymd: string
+    nonce: number
+  } | null>(null)
 
   const [sidebarTab, setSidebarTab] = useState<'favourites' | 'recent'>('favourites')
   const [shoppingScope, setShoppingScope] = useState<'week' | 'all'>('week')
@@ -234,15 +238,40 @@ export function Plan() {
     })
   }, [weekStart, slots, currentWeekYmd])
 
-  const selectWeek = (nextWeekStart: Date, focusDate?: Date) => {
+  useEffect(() => {
+    if (!scrollRequest) return
+    const targetEl = document.getElementById(`plan-day-${scrollRequest.ymd}`)
+    if (!targetEl) return
+    if (typeof targetEl.scrollIntoView === 'function') {
+      targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+    targetEl.focus({ preventScroll: true })
+  }, [scrollRequest, weekStart])
+
+  const selectWeek = (
+    nextWeekStart: Date,
+    focusDate?: Date,
+    scrollToFocusDate = false,
+  ) => {
     const normalizedStart = getWeekStartMonday(nextWeekStart)
     setWeekStart(normalizedStart)
     const syncTarget = focusDate ?? normalizedStart
     setCalendarYear(syncTarget.getFullYear())
     setCalendarMonth(syncTarget.getMonth())
     if (focusDate) {
-      setSelectedDateYmd(formatLocalDate(focusDate))
+      const ymd = formatLocalDate(focusDate)
+      setSelectedDateYmd(ymd)
+      if (scrollToFocusDate) {
+        setScrollRequest((prev) => ({
+          ymd,
+          nonce: (prev?.nonce ?? 0) + 1,
+        }))
+      }
     }
+  }
+
+  const jumpToDate = (date: Date) => {
+    selectWeek(date, date, true)
   }
 
   const shiftWeek = (deltaWeeks: number) => {
@@ -252,7 +281,7 @@ export function Plan() {
   }
 
   const jumpToToday = () => {
-    selectWeek(currentWeekStart, today)
+    selectWeek(currentWeekStart, today, true)
   }
 
   const shiftCalendarMonth = (deltaMonths: number) => {
@@ -481,7 +510,7 @@ export function Plan() {
               onPrevMonth={() => shiftCalendarMonth(-1)}
               onNextMonth={() => shiftCalendarMonth(1)}
               onToday={jumpToToday}
-              onSelectDate={(date) => selectWeek(date, date)}
+              onSelectDate={jumpToDate}
             />
 
             {/* Draggable & Tap-to-Plan Sidebar Palette directly under the calendar */}
@@ -632,6 +661,35 @@ export function Plan() {
                   </button>
                 ))}
               </div>
+              {/* Quick day-jump accelerator bar within the expanded week */}
+              <div
+                aria-label="Jump to day in week"
+                className="mt-2.5 grid grid-cols-7 gap-1 border-t border-parchment/70 pt-2.5"
+              >
+                {expandedWeekDates.map((d) => {
+                  const ymd = formatLocalDate(d)
+                  const active = ymd === selectedDateYmd
+                  const isTodayChip = ymd === todayYmd
+                  return (
+                    <button
+                      key={ymd}
+                      type="button"
+                      onClick={() => jumpToDate(d)}
+                      aria-current={active ? 'date' : undefined}
+                      className={`flex flex-col items-center rounded-xl px-1 py-1 text-[11px] font-semibold tabular-nums transition ${
+                        active
+                          ? 'bg-sage-600 text-white shadow-2xs'
+                          : isTodayChip
+                            ? 'bg-sage-50 text-sage-800 hover:bg-sage-100'
+                            : 'text-ink-muted hover:bg-cream hover:text-ink'
+                      }`}
+                    >
+                      <span>{getWeekdayShort(d)}</span>
+                      <span className="text-[10px] opacity-85">{d.getDate()}</span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
 
             {/* Linear Mon -> Sun Day Cards (Strictly 1 week expanded) */}
@@ -646,12 +704,15 @@ export function Plan() {
                 return (
                   <div
                     key={ymd}
+                    id={`plan-day-${ymd}`}
+                    tabIndex={-1}
                     data-plan-date={ymd}
-                    className={`rounded-3xl border p-4 shadow-2xs transition ${
-                      isToday
-                        ? 'border-sage-400 bg-white ring-1 ring-sage-400/30'
-                        : isSelected
-                          ? 'border-sage-300 bg-white'
+                    data-selected-date={isSelected}
+                    className={`scroll-mt-24 rounded-3xl border p-4 shadow-2xs transition focus:outline-none ${
+                      isSelected
+                        ? 'border-sage-500 bg-white ring-2 ring-sage-500/25'
+                        : isToday
+                          ? 'border-sage-400 bg-white ring-1 ring-sage-400/30'
                           : 'border-parchment bg-white/85'
                     }`}
                   >
@@ -664,11 +725,18 @@ export function Plan() {
                           {dateLabel}
                         </span>
                       </div>
-                      {isToday && (
-                        <span className="rounded-full bg-sage-100 px-2.5 py-0.5 text-[11px] font-bold text-sage-800">
-                          Today
-                        </span>
-                      )}
+                      <div className="flex items-center gap-1.5">
+                        {isSelected && !isToday && (
+                          <span className="rounded-full bg-sage-600 px-2.5 py-0.5 text-[11px] font-bold text-white">
+                            Selected
+                          </span>
+                        )}
+                        {isToday && (
+                          <span className="rounded-full bg-sage-100 px-2.5 py-0.5 text-[11px] font-bold text-sage-800">
+                            Today
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <div className="mt-3 space-y-2">

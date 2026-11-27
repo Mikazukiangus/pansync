@@ -170,11 +170,12 @@ export function OverviewCalendar({
               data-date={ymd}
               data-planned-count={plannedCount}
               data-in-expanded-week={isInExpandedWeek}
+              aria-current={isSelected ? 'date' : undefined}
               aria-label={`${getWeekdayShort(date)} ${ymd}${plannedCount > 0 ? `, ${plannedCount} planned (${mealSummary})` : ', no meals planned'}`}
               title={
                 plannedCount > 0
-                  ? `${ymd}: ${mealSummary}`
-                  : `${ymd} — click to open this week`
+                  ? `${ymd}: ${mealSummary} — click to jump to this date`
+                  : `${ymd} — click to jump to this date`
               }
               className={`relative flex flex-col items-center justify-center py-1.5 text-xs tabular-nums transition ${weekEdgeClass} ${
                 isInExpandedWeek
