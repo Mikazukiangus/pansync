@@ -391,3 +391,11 @@ all done and pushed?
 ```text
 i want do another improvement where i input the dish i want to make to give me the recipes. figure this out without breaking the UI and do a smoke test. 
 ```
+
+---
+
+## Prompt 27 — `2026-11-27 15:35:22 +08:00`
+
+```text
+let me know when this is done. 
+```
