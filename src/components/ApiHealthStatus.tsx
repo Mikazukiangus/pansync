@@ -3,7 +3,6 @@ import { useCallback, useEffect, useState } from 'react'
 
 interface HealthResponse {
   ok?: boolean
-  apiKeyConfigured?: boolean
   upstream?: 'not_checked' | 'ok' | 'degraded' | 'unreachable'
   upstreamLatencyMs?: number
 }
@@ -11,7 +10,6 @@ interface HealthResponse {
 type HealthState =
   | { status: 'checking' }
   | { status: 'ok'; latencyMs?: number }
-  | { status: 'missing_key' }
   | { status: 'error'; detail: string }
 
 async function fetchApiHealth(): Promise<HealthState> {
@@ -19,24 +17,21 @@ async function fetchApiHealth(): Promise<HealthState> {
     const res = await fetch('/api/health?probe=1', { cache: 'no-store' })
     const contentType = res.headers.get('content-type') ?? ''
     if (!contentType.includes('application/json')) {
-      return { status: 'error', detail: 'API endpoint unavailable' }
+      return { status: 'error', detail: 'Unavailable' }
     }
     const data = (await res.json()) as HealthResponse
-    if (data.ok && data.apiKeyConfigured && data.upstream === 'ok') {
+    if (res.ok && data.ok && data.upstream !== 'degraded' && data.upstream !== 'unreachable') {
       return { status: 'ok', latencyMs: data.upstreamLatencyMs }
-    }
-    if (data.apiKeyConfigured === false) {
-      return { status: 'missing_key' }
     }
     return {
       status: 'error',
       detail:
         data.upstream === 'unreachable'
           ? 'Upstream unreachable'
-          : 'API degraded',
+          : 'Degraded',
     }
   } catch {
-    return { status: 'error', detail: 'API unreachable' }
+    return { status: 'error', detail: 'Unreachable' }
   }
 }
 
@@ -64,29 +59,23 @@ export function ApiHealthStatus() {
   const badgeStyle =
     health.status === 'ok'
       ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-      : health.status === 'missing_key'
-        ? 'border-honey-500/30 bg-honey-50 text-honey-700'
-        : health.status === 'error'
-          ? 'border-tomato-200 bg-tomato-50 text-tomato-700'
-          : 'border-parchment bg-white text-ink-muted'
+      : health.status === 'error'
+        ? 'border-tomato-200 bg-tomato-50 text-tomato-700'
+        : 'border-parchment bg-white text-ink-muted'
 
   const dotStyle =
     health.status === 'ok'
       ? 'bg-emerald-500'
-      : health.status === 'missing_key'
-        ? 'bg-honey-500'
-        : health.status === 'error'
-          ? 'bg-tomato-500'
-          : 'bg-ink-subtle animate-pulse'
+      : health.status === 'error'
+        ? 'bg-tomato-500'
+        : 'bg-ink-subtle animate-pulse'
 
   const label =
     health.status === 'ok'
       ? `API Health: All OK${health.latencyMs !== undefined ? ` (${health.latencyMs}ms)` : ''}`
-      : health.status === 'missing_key'
-        ? 'API Health: Key not configured'
-        : health.status === 'error'
-          ? `API Health: ${health.detail}`
-          : 'API Health: Checking…'
+      : health.status === 'error'
+        ? `API Health: ${health.detail}`
+        : 'API Health: Checking…'
 
   return (
     <footer

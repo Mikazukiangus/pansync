@@ -251,3 +251,11 @@ could you do a smoke test to check if this api is working normally?
 ```text
 can you add on the first page and the bottom of the page whether the api health is good or not? green for all ok. 
 ```
+
+---
+
+## Prompt 14 — `2026-11-27 14:29:28 +08:00`
+
+```text
+there is no api key as it is keyless so don't say that api key is not configured
+```

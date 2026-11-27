@@ -7,12 +7,12 @@ describe('ApiHealthStatus indicator', () => {
     vi.restoreAllMocks()
   })
 
-  it('shows green "All OK" status when /api/health?probe=1 is healthy with key configured', async () => {
+  it('shows green "All OK" status in keyless mode when /api/health?probe=1 succeeds', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(
         JSON.stringify({
           ok: true,
-          apiKeyConfigured: true,
+          apiKeyConfigured: false,
           upstream: 'ok',
           upstreamLatencyMs: 142,
         }),
@@ -26,35 +26,34 @@ describe('ApiHealthStatus indicator', () => {
     const statusEl = badge.closest('[role="status"]')!
     expect(statusEl).toHaveAttribute('data-api-health', 'ok')
     expect(statusEl.className).toContain('bg-emerald-50')
+    expect(screen.queryByText(/key not configured/i)).not.toBeInTheDocument()
   })
 
-  it('shows warning state when API key is not yet configured', async () => {
+  it('shows red error state when upstream is unreachable', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(
         JSON.stringify({
-          ok: true,
-          apiKeyConfigured: false,
-          upstream: 'not_checked',
+          ok: false,
+          upstream: 'unreachable',
         }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
+        { status: 503, headers: { 'Content-Type': 'application/json' } },
       ),
     )
 
     render(<ApiHealthStatus />)
 
-    const badge = await screen.findByText(/API Health: Key not configured/i)
-    expect(badge.closest('[role="status"]')).toHaveAttribute(
-      'data-api-health',
-      'missing_key',
-    )
+    const badge = await screen.findByText(/API Health: Upstream unreachable/i)
+    const statusEl = badge.closest('[role="status"]')!
+    expect(statusEl).toHaveAttribute('data-api-health', 'error')
+    expect(statusEl.className).toContain('bg-tomato-50')
   })
 
-  it('shows error state when /api/health is unreachable', async () => {
+  it('shows red error state when /api/health network call fails', async () => {
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Network error'))
 
     render(<ApiHealthStatus />)
 
-    const badge = await screen.findByText(/API Health: API unreachable/i)
+    const badge = await screen.findByText(/API Health: Unreachable/i)
     const statusEl = badge.closest('[role="status"]')!
     expect(statusEl).toHaveAttribute('data-api-health', 'error')
     expect(statusEl.className).toContain('bg-tomato-50')
