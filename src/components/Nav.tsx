@@ -132,11 +132,11 @@ export function Nav() {
             <button
               type="button"
               onClick={() => setSettingsOpen(true)}
-              aria-label="Open pantry staples and dietary settings"
+              aria-label="Open pantry and dietary preferences"
               className="inline-flex min-h-10 items-center gap-2 rounded-full border border-parchment bg-white px-3.5 py-2 text-xs font-semibold whitespace-nowrap text-ink shadow-2xs transition hover:border-sage-300 hover:bg-sage-50"
             >
               <SlidersHorizontal className="h-3.5 w-3.5 text-sage-700" />
-              <span className="hidden sm:inline">Staples</span>
+              <span className="hidden sm:inline">Preferences</span>
             </button>
           </div>
         </div>

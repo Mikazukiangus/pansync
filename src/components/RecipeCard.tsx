@@ -1,5 +1,6 @@
 import { CalendarPlus, Flame, Heart } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { getRecipePriorities, MEAL_PRIORITIES } from '../lib/priorities'
 import { useFavourites } from '../store/useFavourites'
 import type { MatchedRecipe, Recipe } from '../types'
 import { RecipeImage } from './RecipeImage'
@@ -10,9 +11,14 @@ interface RecipeCardProps {
   onPlanClick: (recipe: Recipe) => void
 }
 
+const PRIORITY_LABELS = new Map(MEAL_PRIORITIES.map((p) => [p.id, p.label]))
+
 export function RecipeCard({ recipe, match, onPlanClick }: RecipeCardProps) {
   const isFav = useFavourites((s) => s.ids.includes(recipe.id))
   const toggleFavourite = useFavourites((s) => s.toggleFavourite)
+  const priorityTags = getRecipePriorities(recipe)
+    .map((id) => PRIORITY_LABELS.get(id))
+    .filter((label): label is string => Boolean(label))
 
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-3xl border border-parchment bg-white shadow-xs transition duration-200 hover:-translate-y-0.5 hover:border-sage-300 hover:shadow-lg">
@@ -80,6 +86,12 @@ export function RecipeCard({ recipe, match, onPlanClick }: RecipeCardProps) {
             {recipe.name}
           </h3>
         </Link>
+
+        {priorityTags.length > 0 && (
+          <p className="mt-1.5 text-[11px] font-medium text-sage-700">
+            {priorityTags.join(' · ')}
+          </p>
+        )}
 
         {match ? (
           <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs font-semibold tabular-nums">

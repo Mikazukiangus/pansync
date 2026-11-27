@@ -12,7 +12,7 @@ const STYLES: Record<ExpiryStatus, string> = {
   expired: 'bg-tomato-600 text-white ring-1 ring-tomato-700',
   today: 'bg-tomato-100 text-tomato-700 ring-1 ring-tomato-200',
   soon: 'bg-honey-100 text-honey-700 ring-1 ring-honey-500/30',
-  fine: 'bg-sage-50 text-sage-700 ring-1 ring-sage-200',
+  fine: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
   none: 'bg-cream-dark text-ink-muted ring-1 ring-parchment',
 }
 

@@ -227,9 +227,9 @@ export function Fridge() {
               {counts.soon}
             </p>
           </div>
-          <div className="rounded-2xl border border-sage-200 bg-sage-50 p-3.5">
-            <span className="text-xs font-semibold text-sage-800">Fresh</span>
-            <p className="mt-1 font-display text-2xl font-bold text-sage-800 tabular-nums">
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3.5">
+            <span className="text-xs font-semibold text-emerald-800">Fresh</span>
+            <p className="mt-1 font-display text-2xl font-bold text-emerald-800 tabular-nums">
               {counts.fine}
             </p>
           </div>

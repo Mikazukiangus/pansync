@@ -15,7 +15,12 @@ import { IngredientInput } from '../components/IngredientInput'
 import { RecipeCard } from '../components/RecipeCard'
 import { useRecipes } from '../hooks/useRecipes'
 import { formatSlotLabel, sortFridgeItemsByExpiry } from '../lib/dates'
-import { matchRecipes } from '../lib/matching'
+import { ingredientMatches, matchRecipes } from '../lib/matching'
+import {
+  MEAL_PRIORITIES,
+  recipeMatchesPriorities,
+  type MealPriorityId,
+} from '../lib/priorities'
 import { useFridge } from '../store/useFridge'
 import { usePlan } from '../store/usePlan'
 import { useSearch } from '../store/useSearch'
@@ -47,11 +52,14 @@ export function Find() {
     manualIngredients,
     fridgeMode,
     maxMissing,
+    selectedPriorities,
     addIngredients,
     removeIngredient,
     clearIngredients,
     setFridgeMode,
     setMaxMissing,
+    togglePriority,
+    clearPriorities,
   } = useSearch()
 
   const [planningRecipe, setPlanningRecipe] = useState<Recipe | null>(null)
@@ -132,8 +140,13 @@ export function Find() {
   ])
 
   const matches = useMemo(() => {
-    if (sortMode === 'best') return rawMatches
-    return [...rawMatches].sort((a, b) => {
+    const priorityFiltered =
+      selectedPriorities.length > 0
+        ? rawMatches.filter((m) => recipeMatchesPriorities(m.recipe, selectedPriorities))
+        : rawMatches
+
+    if (sortMode === 'best') return priorityFiltered
+    return [...priorityFiltered].sort((a, b) => {
       if (sortMode === 'fewest-missing') {
         if (a.missingCount !== b.missingCount) return a.missingCount - b.missingCount
         if (b.usedCount !== a.usedCount) return b.usedCount - a.usedCount
@@ -144,12 +157,53 @@ export function Find() {
       if (a.missingCount !== b.missingCount) return a.missingCount - b.missingCount
       return b.score - a.score
     })
-  }, [rawMatches, sortMode])
+  }, [rawMatches, selectedPriorities, sortMode])
+
+  // When no ingredients are entered yet, allow browsing recipes directly by meal priority
+  const priorityOnlyRecipes = useMemo(() => {
+    if (activeIngredients.length > 0 || selectedPriorities.length === 0) return []
+    return recipes
+      .filter((recipe) => {
+        if (
+          excludedIngredients.length > 0 &&
+          recipe.ingredients.some((ing) =>
+            excludedIngredients.some((ex) => ingredientMatches(ex, ing.name)),
+          )
+        ) {
+          return false
+        }
+        return recipeMatchesPriorities(recipe, selectedPriorities)
+      })
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }, [activeIngredients.length, selectedPriorities, recipes, excludedIngredients])
+
+  const priorityCounts = useMemo(() => {
+    const baseRecipes =
+      activeIngredients.length > 0
+        ? rawMatches.map((m) => m.recipe)
+        : excludedIngredients.length > 0
+          ? recipes.filter(
+              (recipe) =>
+                !recipe.ingredients.some((ing) =>
+                  excludedIngredients.some((ex) => ingredientMatches(ex, ing.name)),
+                ),
+            )
+          : recipes
+
+    const counts = new Map<MealPriorityId, number>()
+    for (const option of MEAL_PRIORITIES) {
+      counts.set(
+        option.id,
+        baseRecipes.filter((r) => recipeMatchesPriorities(r, [option.id])).length,
+      )
+    }
+    return counts
+  }, [activeIngredients.length, rawMatches, recipes, excludedIngredients])
 
   const queryKey = useMemo(
     () =>
-      `${fridgeMode ? 'fridge' : 'manual'}:${maxMissing ?? 'all'}:${sortMode}:${activeIngredients.join('|')}`,
-    [fridgeMode, maxMissing, sortMode, activeIngredients],
+      `${fridgeMode ? 'fridge' : 'manual'}:${maxMissing ?? 'all'}:${sortMode}:${selectedPriorities.join(',')}:${activeIngredients.join('|')}`,
+    [fridgeMode, maxMissing, sortMode, selectedPriorities, activeIngredients],
   )
   const visibleCount = pagination.key === queryKey ? pagination.count : PAGE_STEP
 
@@ -157,8 +211,10 @@ export function Find() {
   useEffect(() => {
     if (matches.length > 0) {
       recordRecentRecipes(matches.slice(0, 8).map((m) => m.recipe))
+    } else if (priorityOnlyRecipes.length > 0) {
+      recordRecentRecipes(priorityOnlyRecipes.slice(0, 8))
     }
-  }, [matches, recordRecentRecipes])
+  }, [matches, priorityOnlyRecipes, recordRecentRecipes])
 
   const sortedFridgePreview = useMemo(
     () => sortFridgeItemsByExpiry(fridgeItems).slice(0, 5),
@@ -172,6 +228,12 @@ export function Find() {
   }
 
   const displayedMatches = matches.slice(0, visibleCount)
+  const displayedPriorityRecipes = priorityOnlyRecipes.slice(0, visibleCount)
+  const activePriorityLabels = useMemo(
+    () =>
+      MEAL_PRIORITIES.filter((p) => selectedPriorities.includes(p.id)).map((p) => p.label),
+    [selectedPriorities],
+  )
 
   return (
     <div className="space-y-8">
@@ -213,7 +275,7 @@ export function Find() {
       )}
 
       {/* Hero Search Section */}
-      <section className="rounded-3xl border border-parchment bg-linear-to-br from-white via-cream to-sage-50/70 p-6 shadow-xs sm:p-8">
+      <section className="rounded-3xl border border-parchment bg-linear-to-br from-white via-cream to-sage-100/75 p-6 shadow-xs sm:p-8">
         <div className="max-w-3xl">
           <p className="text-xs font-semibold tracking-wide text-sage-700 uppercase">
             Zero-waste kitchen finder
@@ -328,6 +390,63 @@ export function Find() {
         </div>
       </section>
 
+      {/* Meal Recipe Priorities directly under the hero fridge bubble */}
+      <section aria-label="Meal recipe priorities" className="space-y-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-baseline gap-2">
+            <h2 className="text-xs font-semibold tracking-wide text-ink-muted uppercase">
+              Meal priorities
+            </h2>
+            <span className="text-xs text-ink-subtle">
+              Focus results by nutrition or dietary priority
+            </span>
+          </div>
+          {selectedPriorities.length > 0 && (
+            <button
+              type="button"
+              onClick={clearPriorities}
+              className="text-xs font-semibold text-sage-700 hover:underline"
+            >
+              Clear priorities ({selectedPriorities.length})
+            </button>
+          )}
+        </div>
+
+        <div
+          role="group"
+          aria-label="Filter by meal recipe priorities"
+          className="flex flex-wrap items-center gap-2"
+        >
+          {MEAL_PRIORITIES.map((priority) => {
+            const selected = selectedPriorities.includes(priority.id)
+            const count = priorityCounts.get(priority.id) ?? 0
+            return (
+              <button
+                key={priority.id}
+                type="button"
+                aria-pressed={selected}
+                title={priority.description}
+                onClick={() => togglePriority(priority.id)}
+                className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold whitespace-nowrap transition ${
+                  selected
+                    ? 'bg-sage-600 text-white shadow-xs hover:bg-sage-700'
+                    : 'border border-parchment bg-white text-ink hover:border-sage-400 hover:bg-sage-50'
+                }`}
+              >
+                <span>{priority.label}</span>
+                <span
+                  className={`tabular-nums text-[11px] ${
+                    selected ? 'text-white/85' : 'text-ink-subtle'
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </section>
+
       {/* Filter & Sort bar when active ingredients exist */}
       {activeIngredients.length > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -401,7 +520,7 @@ export function Find() {
             </div>
           ))}
         </div>
-      ) : activeIngredients.length === 0 ? (
+      ) : activeIngredients.length === 0 && selectedPriorities.length === 0 ? (
         <section className="rounded-3xl border border-dashed border-parchment bg-white/70 px-6 py-12 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-sage-100 text-sage-700">
             <ChefHat className="h-7 w-7" />
@@ -430,6 +549,69 @@ export function Find() {
             </button>
           </div>
         </section>
+      ) : activeIngredients.length === 0 && selectedPriorities.length > 0 ? (
+        priorityOnlyRecipes.length === 0 ? (
+          <section className="rounded-3xl border border-parchment bg-white px-6 py-12 text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-tomato-50 text-tomato-600">
+              <UtensilsCrossed className="h-6 w-6" />
+            </div>
+            <h3 className="mt-3 font-display text-xl font-semibold text-ink">
+              No recipes match all selected priorities
+            </h3>
+            <p className="mx-auto mt-1 max-w-md text-sm text-ink-muted">
+              No recipes combine {activePriorityLabels.join(' + ')}. Try deselecting one priority to see more options.
+            </p>
+            <div className="mt-4 flex justify-center">
+              <button
+                type="button"
+                onClick={clearPriorities}
+                className="min-h-10 rounded-xl bg-sage-600 px-4 py-2 text-xs font-semibold text-white hover:bg-sage-700"
+              >
+                Clear priorities
+              </button>
+            </div>
+          </section>
+        ) : (
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="font-display text-xl font-semibold text-ink tabular-nums">
+                {priorityOnlyRecipes.length} {activePriorityLabels.join(' · ')} recipes
+              </h2>
+              {priorityOnlyRecipes.length > displayedPriorityRecipes.length && (
+                <span className="text-xs text-ink-muted tabular-nums">
+                  Showing {displayedPriorityRecipes.length} of {priorityOnlyRecipes.length}
+                </span>
+              )}
+            </div>
+
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {displayedPriorityRecipes.map((recipe) => (
+                <RecipeCard
+                  key={recipe.id}
+                  recipe={recipe}
+                  onPlanClick={setPlanningRecipe}
+                />
+              ))}
+            </div>
+
+            {priorityOnlyRecipes.length > displayedPriorityRecipes.length && (
+              <div className="flex flex-col items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPagination((prev) => ({
+                      key: queryKey,
+                      count: (prev.key === queryKey ? prev.count : PAGE_STEP) + PAGE_STEP,
+                    }))
+                  }
+                  className="min-h-11 rounded-2xl border border-parchment bg-white px-6 py-2.5 text-sm font-semibold text-ink shadow-2xs transition hover:border-sage-400 hover:bg-sage-50"
+                >
+                  Show more recipes ({priorityOnlyRecipes.length - displayedPriorityRecipes.length} remaining)
+                </button>
+              </div>
+            )}
+          </div>
+        )
       ) : matches.length === 0 ? (
         <section className="rounded-3xl border border-parchment bg-white px-6 py-12 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-tomato-50 text-tomato-600">
@@ -439,13 +621,24 @@ export function Find() {
             No recipes matched that exact filter
           </h3>
           <p className="mx-auto mt-1 max-w-md text-sm text-ink-muted">
-            {matchesWithoutExclusionsCount > 0
-              ? `${matchesWithoutExclusionsCount} matching recipe${matchesWithoutExclusionsCount === 1 ? ' was' : 's were'} hidden by your excluded ingredients (${excludedIngredients.join(', ')}).`
-              : maxMissing !== null
-                ? 'Try relaxing the "Missing at most N" filter so recipes needing a couple extra items can appear.'
-                : 'Try adding a common staple like eggs, rice, onion, garlic, or potatoes — or reset your current list.'}
+            {selectedPriorities.length > 0 && rawMatches.length > 0
+              ? `${rawMatches.length} ingredient match${rawMatches.length === 1 ? ' was' : 'es were'} filtered out by your meal priorities (${activePriorityLabels.join(', ')}).`
+              : matchesWithoutExclusionsCount > 0
+                ? `${matchesWithoutExclusionsCount} matching recipe${matchesWithoutExclusionsCount === 1 ? ' was' : 's were'} hidden by your excluded ingredients (${excludedIngredients.join(', ')}).`
+                : maxMissing !== null
+                  ? 'Try relaxing the "Missing at most N" filter so recipes needing a couple extra items can appear.'
+                  : 'Try adding a common staple like eggs, rice, onion, garlic, or potatoes — or reset your current list.'}
           </p>
           <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+            {selectedPriorities.length > 0 && (
+              <button
+                type="button"
+                onClick={clearPriorities}
+                className="min-h-10 rounded-xl bg-sage-600 px-4 py-2 text-xs font-semibold text-white hover:bg-sage-700"
+              >
+                Clear priorities
+              </button>
+            )}
             {maxMissing !== null && (
               <button
                 type="button"

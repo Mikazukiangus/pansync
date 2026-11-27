@@ -286,21 +286,19 @@ it still says the push overwrites previous 5 commits. relook into conflicts as m
 
 ---
 
-## Prompt 16 — `2026-11-27 14:38:11 +08:00`
+## Prompt 16 — `2026-11-26 22:42:10 -08:00`
 
 ```text
-i want to add another api for OpenFoodFacts. Refer to the documentation to add this free api here: https://openfoodfacts.github.io/openfoodfacts-server/api/,  Example of a call is "https://world.openfoodfacts.org/api/v2/product/3017624010701.json?fields=product_name,brands,nutriscore_grade
-# User-Agent: YourApp/1.0 (your-app.vercel.app)".  You will also need to watch out for open food fcts requires a custom user-agent, so you need to call it from an api/ function. Search allows only 10 requests per minute per IP and vercel functions share IP addresses. Use the barcode endpoint where you can, and cache the results, and some products may not have allergen list or nutri-score grade. any questions just ask me.
+Instead of staples on the top right, change it to preferences.
 ```
-
-### Prompt 16 Clarifications Confirmed
-- **Scope**: Backend & data layer only (`api/openfoodfacts.ts`, `src/data/openfoodfacts.ts`, `api/health.ts`, `vite.config.ts`, tests — zero UI edits).
-- **Default User-Agent**: `PanSync/1.0 (pansync.vercel.app)` (overridable via `OPENFOODFACTS_USER_AGENT`).
 
 ---
 
-## Prompt 17 — `2026-11-27 14:43:42 +08:00`
+## Prompt 17 — `2026-11-26 22:44:20 -08:00`
 
 ```text
-is this done?
+1. Under the bubble segment, what's waiting in your fridge, add categories that categorizes meal recipe priorities. Like "high protein, vegetatrian, crustacean, low calorie, no carbs"
+
+2. Change website color scheme to the image attached, which orange as the accents.
 ```
+

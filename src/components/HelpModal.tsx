@@ -97,8 +97,8 @@ export function HelpModal({ open, onClose }: HelpModalProps) {
               <SlidersHorizontal className="h-4 w-4 text-sage-700" />
               <span>Staples &amp; Allergen Exclusions</span>
             </div>
-            <p className="mt-1.5 text-xs leading-relaxed text-ink-muted">
-              Pantry staples (salt, pepper, oil, water, plus any you add in <strong className="text-ink">Staples</strong>) always count as &ldquo;have&rdquo; and stay off your shopping list. Excluded items hide matching recipes from Find results.
+              <p className="mt-1.5 text-xs leading-relaxed text-ink-muted">
+              Pantry staples (salt, pepper, oil, water, plus any you add in <strong className="text-ink">Preferences</strong>) always count as &ldquo;have&rdquo; and stay off your shopping list. Excluded items hide matching recipes from Find results.
             </p>
           </div>
 
