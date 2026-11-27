@@ -161,4 +161,44 @@ describe('Heuristic #7 & #3 — Direct calendar date jump & Search/Favourites un
     ).toBeInTheDocument()
     expect(useFavourites.getState().isFavourite(firstRecipe.id)).toBe(true)
   })
+
+  it('constrains mobile Plan grid columns with min-w-0 and shows Back to calendar mini-arrow when scrolled down', async () => {
+    const user = userEvent.setup()
+    const scrolledIds: string[] = []
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView
+    HTMLElement.prototype.scrollIntoView = vi.fn(function (this: HTMLElement) {
+      scrolledIds.push(this.id)
+    })
+
+    try {
+      render(
+        <MemoryRouter initialEntries={['/plan']}>
+          <AppRoutes />
+        </MemoryRouter>,
+      )
+
+      expect(
+        await screen.findByRole('heading', { name: /Weekly Meal Plan/i }),
+      ).toBeInTheDocument()
+
+      const expandedSection = screen.getByLabelText('Expanded week meal plan')
+      expect(expandedSection.className).toContain('min-w-0')
+      expect(expandedSection.parentElement?.className).toContain('grid-cols-1')
+
+      // Simulate scrolling down past the calendar on mobile
+      Object.defineProperty(window, 'scrollY', { value: 500, configurable: true })
+      window.dispatchEvent(new Event('scroll'))
+
+      const backToCalBtn = await screen.findByRole('button', {
+        name: /Back to calendar/i,
+      })
+      expect(backToCalBtn).toBeInTheDocument()
+
+      await user.click(backToCalBtn)
+      expect(scrolledIds).toContain('plan-overview-calendar')
+    } finally {
+      Object.defineProperty(window, 'scrollY', { value: 0, configurable: true })
+      HTMLElement.prototype.scrollIntoView = originalScrollIntoView
+    }
+  })
 })

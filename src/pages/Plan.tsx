@@ -12,6 +12,7 @@ import {
 } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import {
+  ArrowUp,
   Calendar,
   CalendarPlus,
   Check,
@@ -179,7 +180,36 @@ export function Plan() {
   const [modalFilter, setModalFilter] = useState('')
   const [copied, setCopied] = useState(false)
   const [undoAction, setUndoAction] = useState<PlanUndoAction | null>(null)
+  const [showBackToCalendar, setShowBackToCalendar] = useState(false)
   const modalSearchRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const updateVisibility = () => {
+      const calEl = document.getElementById('plan-overview-calendar')
+      if (calEl) {
+        const rect = calEl.getBoundingClientRect()
+        setShowBackToCalendar(rect.bottom < 120 || window.scrollY > 280)
+      } else {
+        setShowBackToCalendar(window.scrollY > 280)
+      }
+    }
+    updateVisibility()
+    window.addEventListener('scroll', updateVisibility, { passive: true })
+    window.addEventListener('resize', updateVisibility, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', updateVisibility)
+      window.removeEventListener('resize', updateVisibility)
+    }
+  }, [])
+
+  const scrollBackToCalendar = () => {
+    const calEl = document.getElementById('plan-overview-calendar')
+    if (calEl && typeof calEl.scrollIntoView === 'function') {
+      calEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
 
   useEffect(() => {
     if (!undoAction) return
@@ -497,9 +527,9 @@ export function Plan() {
           </div>
         )}
 
-        <div className="grid gap-6 lg:grid-cols-12 lg:items-start">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start">
           {/* Sticky Left Column: Overview Calendar + Favourites/Recent bubble moving together */}
-          <div className="space-y-4 lg:sticky lg:top-20 lg:col-span-4">
+          <div className="min-w-0 space-y-4 lg:sticky lg:top-20 lg:col-span-4">
             <OverviewCalendar
               year={calendarYear}
               month={calendarMonth}
@@ -516,7 +546,7 @@ export function Plan() {
             {/* Draggable & Tap-to-Plan Sidebar Palette directly under the calendar */}
             <aside
               aria-label="Favourites and recent recipes"
-              className="rounded-3xl border border-parchment bg-white p-5 shadow-xs"
+              className="min-w-0 rounded-3xl border border-parchment bg-white p-4 shadow-xs sm:p-5"
             >
               <div className="grid grid-cols-2 gap-1 rounded-2xl bg-cream p-1">
                 <button
@@ -580,23 +610,23 @@ export function Plan() {
           {/* Right Column: Expanded 1-Week Meal Grid (at most 1 week expanded at a time) */}
           <section
             aria-label="Expanded week meal plan"
-            className="space-y-4 lg:col-span-8"
+            className="min-w-0 space-y-4 lg:col-span-8"
           >
             {/* Week Stepper & Scrollable Week Strip */}
-            <div className="rounded-3xl border border-parchment bg-white p-4 shadow-xs">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
+            <div className="min-w-0 overflow-hidden rounded-3xl border border-parchment bg-white p-3.5 shadow-xs sm:p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
+                <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
                   <button
                     type="button"
                     aria-label="Previous week"
                     onClick={() => shiftWeek(-1)}
-                    className="flex h-8 w-8 items-center justify-center rounded-full border border-parchment bg-cream text-ink-muted transition hover:border-sage-300 hover:bg-white hover:text-ink"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-parchment bg-cream text-ink-muted transition hover:border-sage-300 hover:bg-white hover:text-ink"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </button>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-sage-700" aria-hidden="true" />
-                    <h2 className="font-display text-lg font-semibold text-ink tabular-nums">
+                  <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+                    <Calendar className="h-4 w-4 shrink-0 text-sage-700" aria-hidden="true" />
+                    <h2 className="truncate font-display text-base font-semibold text-ink tabular-nums sm:text-lg">
                       {formatWeekRange(weekStart)}
                     </h2>
                   </div>
@@ -604,7 +634,7 @@ export function Plan() {
                     type="button"
                     aria-label="Next week"
                     onClick={() => shiftWeek(1)}
-                    className="flex h-8 w-8 items-center justify-center rounded-full border border-parchment bg-cream text-ink-muted transition hover:border-sage-300 hover:bg-white hover:text-ink"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-parchment bg-cream text-ink-muted transition hover:border-sage-300 hover:bg-white hover:text-ink"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </button>
@@ -630,7 +660,7 @@ export function Plan() {
               {/* Scrollable week switcher bar */}
               <div
                 aria-label="Scroll between weeks"
-                className="mt-3 flex gap-2 overflow-x-auto pb-1"
+                className="no-scrollbar mt-3 flex w-full max-w-full gap-2 overflow-x-auto pb-1"
               >
                 {scrollableWeeks.map((w) => (
                   <button
@@ -664,7 +694,7 @@ export function Plan() {
               {/* Quick day-jump accelerator bar within the expanded week */}
               <div
                 aria-label="Jump to day in week"
-                className="mt-2.5 grid grid-cols-7 gap-1 border-t border-parchment/70 pt-2.5"
+                className="mt-2.5 grid grid-cols-7 gap-0.5 border-t border-parchment/70 pt-2.5 sm:gap-1"
               >
                 {expandedWeekDates.map((d) => {
                   const ymd = formatLocalDate(d)
@@ -676,7 +706,7 @@ export function Plan() {
                       type="button"
                       onClick={() => jumpToDate(d)}
                       aria-current={active ? 'date' : undefined}
-                      className={`flex flex-col items-center rounded-xl px-1 py-1 text-[11px] font-semibold tabular-nums transition ${
+                      className={`flex min-w-0 flex-col items-center rounded-xl px-0.5 py-1 text-[10px] font-semibold tabular-nums transition sm:px-1 sm:text-[11px] ${
                         active
                           ? 'bg-sage-600 text-white shadow-2xs'
                           : isTodayChip
@@ -762,7 +792,7 @@ export function Plan() {
         </div>
 
         {/* Consolidated Smart Shopping List */}
-        <section className="rounded-3xl border border-parchment bg-white p-6 shadow-xs">
+        <section className="min-w-0 rounded-3xl border border-parchment bg-white p-4 shadow-xs sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sage-100 text-sage-700">
@@ -865,11 +895,11 @@ export function Plan() {
               You already have every ingredient needed in your fridge and pantry staples — nothing to buy!
             </div>
           ) : (
-            <ul className="mt-6 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="mt-6 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
               {shoppingItems.map((item) => {
                 const checked = Boolean(checkedItems[item.key])
                 return (
-                  <li key={item.key}>
+                  <li key={item.key} className="min-w-0">
                     <label
                       className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-3.5 transition ${
                         checked
@@ -910,6 +940,19 @@ export function Plan() {
           )}
         </section>
       </div>
+
+      {/* Mobile Floating Mini-Arrow to Jump Back Up to Overview Calendar */}
+      {showBackToCalendar && (
+        <button
+          type="button"
+          onClick={scrollBackToCalendar}
+          aria-label="Back to calendar"
+          title="Back to calendar"
+          className="fixed right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] z-40 flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-sage-600 text-white shadow-lg transition hover:bg-sage-700 active:scale-95 lg:hidden"
+        >
+          <ArrowUp className="h-4 w-4" />
+        </button>
+      )}
 
       {/* Drag Overlay */}
       <DragOverlay>

@@ -68,8 +68,9 @@ export function OverviewCalendar({
 
   return (
     <section
+      id="plan-overview-calendar"
       aria-label="Meal plan overview calendar"
-      className="rounded-3xl border border-parchment bg-white p-5 shadow-xs"
+      className="scroll-mt-20 rounded-3xl border border-parchment bg-white p-3.5 shadow-xs sm:p-5"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
