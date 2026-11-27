@@ -415,3 +415,11 @@ figure how to Help users recognise, diagnose and recover from errors: When no ma
 ```text
 1. Flexibility amd efficiency of use , when clicking on a date in the calendar, link to the actual date instead of the week and user has to scroll to find the particular selected date. There is some cognitive dissonance when it links to the start of the week instead of user selected date. 2.When I delete ingredient/dishes from the search bar/My Favourite list, there is no undo action. Heuristic 3, User control and freedom, severity 1.
 ```
+
+---
+
+## Prompt 30 — `2026-11-27 16:11:46 +08:00`
+
+```text
+is this done?
+```
