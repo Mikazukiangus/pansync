@@ -1,14 +1,17 @@
-import { CalendarPlus, Check, X } from 'lucide-react'
-import { useState } from 'react'
-import { usePlan } from '../store/usePlan'
+import { CalendarPlus, Check, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import {
-  DAYS_OF_WEEK,
-  MEAL_SLOTS,
-  type DayOfWeek,
-  type MealSlotType,
-  type PlanSlotKey,
-  type Recipe,
-} from '../types'
+  formatLocalDate,
+  formatShortDayDate,
+  formatWeekRange,
+  getWeekDates,
+  getWeekdayShort,
+  getWeekStartMonday,
+  makeDatedSlotKey,
+  parseLocalDate,
+} from '../lib/dates'
+import { usePlan } from '../store/usePlan'
+import { MEAL_SLOTS, type MealSlotType, type Recipe } from '../types'
 
 interface AddToPlanModalProps {
   recipe: Recipe | null
@@ -16,16 +19,46 @@ interface AddToPlanModalProps {
 }
 
 export function AddToPlanModal({ recipe, onClose }: AddToPlanModalProps) {
+  if (!recipe) return null
+  return <AddToPlanModalContent key={recipe.id} recipe={recipe} onClose={onClose} />
+}
+
+function AddToPlanModalContent({
+  recipe,
+  onClose,
+}: {
+  recipe: Recipe
+  onClose: () => void
+}) {
   const slots = usePlan((s) => s.slots)
   const setSlot = usePlan((s) => s.setSlot)
-  const [selectedDay, setSelectedDay] = useState<DayOfWeek>('Mon')
+
+  const [todayStr] = useState<string>(() => formatLocalDate(new Date()))
+  const [weekStart, setWeekStart] = useState<Date>(() => getWeekStartMonday(new Date()))
+  const [selectedDate, setSelectedDate] = useState<string>(todayStr)
   const [selectedMeal, setSelectedMeal] = useState<MealSlotType>('Dinner')
   const [justAdded, setJustAdded] = useState(false)
 
-  if (!recipe) return null
+  const weekDates = useMemo(() => getWeekDates(weekStart), [weekStart])
+  const selectedDateObj = useMemo(
+    () => parseLocalDate(selectedDate) ?? weekDates[0],
+    [selectedDate, weekDates],
+  )
 
-  const targetKey: PlanSlotKey = `${selectedDay}-${selectedMeal}`
+  const targetKey = makeDatedSlotKey(selectedDate, selectedMeal)
   const existingInTarget = slots[targetKey]
+  const selectedDayLabel = `${getWeekdayShort(selectedDateObj)}, ${formatShortDayDate(selectedDateObj)}`
+
+  const shiftWeek = (deltaWeeks: number) => {
+    const nextStart = new Date(weekStart)
+    nextStart.setDate(nextStart.getDate() + deltaWeeks * 7)
+    setWeekStart(nextStart)
+    const nextDates = getWeekDates(nextStart)
+    const nextHasSelected = nextDates.some((d) => formatLocalDate(d) === selectedDate)
+    if (!nextHasSelected) {
+      setSelectedDate(formatLocalDate(nextDates[0]))
+    }
+  }
 
   const handleConfirm = () => {
     setSlot(targetKey, recipe)
@@ -55,7 +88,7 @@ export function AddToPlanModal({ recipe, onClose }: AddToPlanModalProps) {
             </div>
             <div>
               <h2 id="plan-picker-title" className="font-display text-lg font-semibold text-ink">
-                Add to Weekly Plan
+                Add to Meal Plan
               </h2>
               <p className="line-clamp-1 text-xs font-medium text-ink-muted">
                 {recipe.name}
@@ -73,24 +106,66 @@ export function AddToPlanModal({ recipe, onClose }: AddToPlanModalProps) {
         </div>
 
         <div className="mt-5">
-          <label className="text-xs font-semibold tracking-wide text-ink-muted uppercase">
-            Pick a Day
-          </label>
+          <div className="flex items-center justify-between gap-2">
+            <label className="text-xs font-semibold tracking-wide text-ink-muted uppercase">
+              Pick a Date
+            </label>
+            <div className="inline-flex items-center gap-1 rounded-full border border-parchment bg-white px-2 py-0.5 text-xs">
+              <button
+                type="button"
+                aria-label="Previous week"
+                onClick={() => shiftWeek(-1)}
+                className="rounded-full p-0.5 text-ink-muted hover:bg-cream hover:text-ink"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </button>
+              <span className="px-1 font-semibold text-ink">{formatWeekRange(weekStart)}</span>
+              <button
+                type="button"
+                aria-label="Next week"
+                onClick={() => shiftWeek(1)}
+                className="rounded-full p-0.5 text-ink-muted hover:bg-cream hover:text-ink"
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+
           <div className="mt-2 grid grid-cols-7 gap-1.5">
-            {DAYS_OF_WEEK.map((day) => {
-              const active = selectedDay === day
+            {weekDates.map((dateObj) => {
+              const ymd = formatLocalDate(dateObj)
+              const active = selectedDate === ymd
+              const isToday = ymd === todayStr
+              const hasPlanned = MEAL_SLOTS.some((meal) =>
+                Boolean(slots[makeDatedSlotKey(ymd, meal)]),
+              )
               return (
                 <button
-                  key={day}
+                  key={ymd}
                   type="button"
-                  onClick={() => setSelectedDay(day)}
-                  className={`rounded-xl py-2 text-xs font-semibold transition ${
+                  aria-label={`${getWeekdayShort(dateObj)}, ${formatShortDayDate(dateObj)}`}
+                  onClick={() => setSelectedDate(ymd)}
+                  className={`flex flex-col items-center rounded-xl py-2 text-xs font-semibold transition ${
                     active
                       ? 'bg-sage-600 text-white shadow-xs'
-                      : 'border border-parchment bg-white text-ink hover:border-sage-300'
+                      : isToday
+                        ? 'border border-sage-400 bg-sage-50 text-ink hover:border-sage-500'
+                        : 'border border-parchment bg-white text-ink hover:border-sage-300'
                   }`}
                 >
-                  {day}
+                  <span className="text-[10px] font-medium opacity-85">
+                    {getWeekdayShort(dateObj)}
+                  </span>
+                  <span className="mt-0.5 text-xs font-bold">{dateObj.getDate()}</span>
+                  <span
+                    className={`mt-1 h-1 w-1 rounded-full ${
+                      hasPlanned
+                        ? active
+                          ? 'bg-white'
+                          : 'bg-sage-600'
+                        : 'bg-transparent'
+                    }`}
+                  />
                 </button>
               )
             })}
@@ -101,10 +176,10 @@ export function AddToPlanModal({ recipe, onClose }: AddToPlanModalProps) {
           <label className="text-xs font-semibold tracking-wide text-ink-muted uppercase">
             Meal Slot
           </label>
-          <div className="mt-2 grid grid-cols-2 gap-2">
+          <div className="mt-2 grid grid-cols-3 gap-2">
             {MEAL_SLOTS.map((meal) => {
               const active = selectedMeal === meal
-              const slotOccupant = slots[`${selectedDay}-${meal}`]
+              const slotOccupant = slots[makeDatedSlotKey(selectedDate, meal)]
               return (
                 <button
                   key={meal}
@@ -128,8 +203,10 @@ export function AddToPlanModal({ recipe, onClose }: AddToPlanModalProps) {
 
         {existingInTarget && (
           <p className="mt-3 rounded-xl bg-honey-50 px-3 py-2 text-xs text-honey-700">
-            <strong>{selectedDay} {selectedMeal}</strong> currently has{' '}
-            <em>{existingInTarget.name}</em> — confirming will swap it out.
+            <strong>
+              {selectedDayLabel} · {selectedMeal}
+            </strong>{' '}
+            currently has <em>{existingInTarget.name}</em> — confirming will swap it out.
           </p>
         )}
 
@@ -152,7 +229,9 @@ export function AddToPlanModal({ recipe, onClose }: AddToPlanModalProps) {
                 Added!
               </>
             ) : (
-              <>Save to {selectedDay} {selectedMeal}</>
+              <>
+                Save to {selectedDayLabel} · {selectedMeal}
+              </>
             )}
           </button>
         </div>

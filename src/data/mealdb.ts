@@ -3,7 +3,7 @@ import { normalize } from '../lib/matching'
 import type { Recipe, RecipeIngredient } from '../types'
 import fallbackRecipesRaw from './fallback-recipes.json'
 
-const API_PROXY_PATH = '/api/mealsdb'
+const API_BASE = 'https://www.themealdb.com/api/json/v1/1'
 const RECIPES_CACHE_KEY = 'pansync-mealdb-recipes-v1'
 const INGREDIENTS_CACHE_KEY = 'pansync-mealdb-ingredients-v1'
 export const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
@@ -120,73 +120,21 @@ async function fetchJsonWithTimeout<T>(url: string, timeoutMs = 10000): Promise<
 }
 
 /**
- * Fetch meals starting with a single letter (`search.php?f={letter}`) through /api/mealsdb.
- */
-export async function fetchMealsByFirstLetter(letter: string): Promise<Recipe[]> {
-  const clean = letter.trim().toLowerCase()
-  if (!/^[a-z]$/.test(clean)) return []
-  const payload = await fetchJsonWithTimeout<{ meals: MealDBRawMeal[] | null }>(
-    `${API_PROXY_PATH}?endpoint=search&f=${encodeURIComponent(clean)}`,
-  )
-  if (!Array.isArray(payload.meals)) return []
-  return payload.meals
-    .filter((m) => Boolean(m?.idMeal && m?.strMeal))
-    .map(mapMealToRecipe)
-}
-
-/**
- * Search meals by dish/food name (`search.php?s={query}`) through /api/mealsdb.
- * Falls back to local recipes when offline or when THEMEALDB_API_KEY is unset.
- */
-export async function searchMealsByName(
-  query: string,
-  fallbackPool: readonly Recipe[] = getFallbackRecipes(),
-): Promise<{ recipes: Recipe[]; fromServer: boolean }> {
-  const trimmed = query.trim()
-  if (!trimmed) return { recipes: [], fromServer: false }
-
-  if (!isSimulatedOffline()) {
-    try {
-      const payload = await fetchJsonWithTimeout<{ meals: MealDBRawMeal[] | null }>(
-        `${API_PROXY_PATH}?endpoint=search&s=${encodeURIComponent(trimmed)}`,
-      )
-      const list = Array.isArray(payload.meals)
-        ? payload.meals
-            .filter((m) => Boolean(m?.idMeal && m?.strMeal))
-            .map(mapMealToRecipe)
-        : []
-      return { recipes: list, fromServer: true }
-    } catch {
-      // Fall through to local name search so UX stays responsive offline
-    }
-  }
-
-  const lower = trimmed.toLowerCase()
-  const localMatches = fallbackPool.filter(
-    (r) =>
-      r.name.toLowerCase().includes(lower) ||
-      r.area.toLowerCase().includes(lower) ||
-      r.category.toLowerCase().includes(lower),
-  )
-  return { recipes: localMatches, fromServer: false }
-}
-
-/**
- * Fetch all recipes across a..z in parallel through the serverless /api/mealsdb proxy.
+ * Fetch all recipes across a..z in parallel from TheMealDB.
  */
 export async function fetchAllMealDBRecipes(): Promise<Recipe[]> {
   const letters = 'abcdefghijklmnopqrstuvwxyz'.split('')
   const responses = await Promise.all(
     letters.map((letter) =>
       fetchJsonWithTimeout<{ meals: MealDBRawMeal[] | null }>(
-        `${API_PROXY_PATH}?endpoint=search&f=${encodeURIComponent(letter)}`,
+        `${API_BASE}/search.php?f=${letter}`,
       ),
     ),
   )
 
   const byId = new Map<string, Recipe>()
   for (const payload of responses) {
-    if (!Array.isArray(payload.meals)) continue
+    if (!payload.meals) continue
     for (const rawMeal of payload.meals) {
       if (rawMeal?.idMeal && rawMeal?.strMeal) {
         byId.set(String(rawMeal.idMeal), mapMealToRecipe(rawMeal))
@@ -204,9 +152,9 @@ export async function fetchAllMealDBRecipes(): Promise<Recipe[]> {
 export async function fetchMealDBIngredientsList(): Promise<string[]> {
   const data = await fetchJsonWithTimeout<{
     meals: Array<{ strIngredient?: string | null }> | null
-  }>(`${API_PROXY_PATH}?endpoint=list&i=list`)
+  }>(`${API_BASE}/list.php?i=list`)
 
-  if (!Array.isArray(data.meals) || data.meals.length === 0) {
+  if (!data.meals || data.meals.length === 0) {
     throw new Error('Empty ingredient list from TheMealDB')
   }
 
@@ -220,43 +168,6 @@ export async function fetchMealDBIngredientsList(): Promise<string[]> {
     }
   }
   return Array.from(unique.values()).sort((a, b) => a.localeCompare(b))
-}
-
-/**
- * Look up full meal details by ID (`lookup.php?i={id}`) through /api/mealsdb.
- */
-export async function fetchMealById(id: string): Promise<Recipe | null> {
-  if (!/^[1-9]\d*$/.test(id.trim()) || isSimulatedOffline()) return null
-  const data = await fetchJsonWithTimeout<{ meals: MealDBRawMeal[] | null }>(
-    `${API_PROXY_PATH}?endpoint=lookup&i=${encodeURIComponent(id.trim())}`,
-  )
-  if (!Array.isArray(data.meals) || data.meals.length === 0) return null
-  return mapMealToRecipe(data.meals[0])
-}
-
-/**
- * Fetch a single random meal (`random.php`) through /api/mealsdb,
- * falling back to a random local recipe when offline.
- */
-export async function fetchRandomMeal(
-  fallbackPool: readonly Recipe[] = getFallbackRecipes(),
-): Promise<Recipe | null> {
-  if (!isSimulatedOffline()) {
-    try {
-      const data = await fetchJsonWithTimeout<{ meals: MealDBRawMeal[] | null }>(
-        `${API_PROXY_PATH}?endpoint=random`,
-      )
-      if (Array.isArray(data.meals) && data.meals.length > 0) {
-        return mapMealToRecipe(data.meals[0])
-      }
-    } catch {
-      // Fall back to local pool below
-    }
-  }
-
-  if (fallbackPool.length === 0) return null
-  const idx = Math.floor(Math.random() * fallbackPool.length)
-  return fallbackPool[idx]
 }
 
 export interface LoadedRecipeDataset {

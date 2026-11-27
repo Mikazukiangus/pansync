@@ -208,43 +208,30 @@ save all the previous instructions into a file named prompts.md and save it in t
 
 ---
 
-## Prompt 8 — `2026-11-27 14:04:03 +08:00`
+## Prompt 8 — `2026-11-26 22:06:44 -08:00`
 
 ```text
-1. add a serverless connection that pulls from mealsdb.com using the following guides https://www.themealdb.com/AGENTS.md, https://www.themealdb.com/SKILL.md  and the endpoints at (https://www.themealdb.com/api/spec/openapi-v1.yaml)                                                                                      2. store this in/api at project root level (not the src file)
-   
-   3. include a /health.ts and /mealsdb.ts within the same subfolder
-   
-   4. do not hardcode any key, I will input them manually.    5. let me know if you have any questions to clarify.
-```
+For Recipe page.
 
-### Prompt 8 Clarifications Confirmed
-- **Frontend wiring**: Route frontend (`src/data/mealdb.ts`) through `/api/mealsdb` (keep IndexedDB cache & offline fallback).
-- **Environment variable**: `THEMEALDB_API_KEY` (with `.env.example` template; no hardcoded key).
-- **Runtime & local dev**: Vercel Functions (`api/health.ts` & `api/mealsdb.ts`) + updated `vercel.json` rewrite + local Vite middleware for dev.
+1. Change the multiplier to be for how many pax instead of ingredients.
 
----
-
-## Prompt 9 — `2026-11-27 14:12:45 +08:00`
-
-```text
-Attached is just an example how the api is called when a search for food is done, update how your code works accordingly.
-```
-
-*(Attached screenshot showing TheMealDB v1 endpoints: Search meal by name `search.php?s=Arrabiata`, List all meals by first letter `search.php?f=a`, Lookup full meal details by id `lookup.php?i=52772`, and Lookup a single random meal `random.php`.)*
-
----
-
-## Prompt 10 — `2026-11-27 14:14:30 +08:00`
-
-```text
-let me know when this is done and that i can push. also take note that the UI of the website is being updated by other team members, so avoid changing any code that affects the UI.
+2. For ingredients. if i choose to undo a checked item marked as "have" i can click the tick again to say that it is missing.
 ```
 
 ---
 
-## Prompt 11 — `2026-11-27 14:17:09 +08:00`
+## Prompt 9 — `2026-11-26 22:12:33 -08:00`
 
 ```text
-git push to repo
+In my meal planner, can we also include some form of calendar? And add some form of date. I at most 1 week expanded at most but still be able to scroll between weeks. and have a overview calendar that shows which days are already planned
+```
+
+---
+
+## Prompt 10 — `2026-11-26 22:17:47 -08:00`
+
+```text
+Now my planner doesnt have breakfast in there. Lets add breakfast section above lunch.
+
+Also the format of reading mon tue wed in a zig zag form hard to read. can we do it in a more linear form?
 ```

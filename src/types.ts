@@ -29,8 +29,8 @@ export interface FridgeItem {
 export type ExpiryStatus = 'expired' | 'today' | 'soon' | 'fine' | 'none'
 
 export type DayOfWeek = 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun'
-export type MealSlotType = 'Lunch' | 'Dinner'
-export type PlanSlotKey = `${DayOfWeek}-${MealSlotType}`
+export type MealSlotType = 'Breakfast' | 'Lunch' | 'Dinner'
+export type PlanSlotKey = `${string}-${MealSlotType}`
 
 export const DAYS_OF_WEEK: readonly DayOfWeek[] = [
   'Mon',
@@ -42,7 +42,11 @@ export const DAYS_OF_WEEK: readonly DayOfWeek[] = [
   'Sun',
 ] as const
 
-export const MEAL_SLOTS: readonly MealSlotType[] = ['Lunch', 'Dinner'] as const
+export const MEAL_SLOTS: readonly MealSlotType[] = [
+  'Breakfast',
+  'Lunch',
+  'Dinner',
+] as const
 
 export interface IngredientMatchDetail {
   ingredient: RecipeIngredient

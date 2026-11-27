@@ -10,28 +10,60 @@ import {
   PlayCircle,
   Plus,
   Sparkles,
+  Users,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { AddToPlanModal } from '../components/AddToPlanModal'
 import { useRecipes } from '../hooks/useRecipes'
-import { evaluateRecipe } from '../lib/matching'
+import { evaluateRecipe, ingredientMatches, normalize } from '../lib/matching'
 import { useFavourites } from '../store/useFavourites'
 import { useFridge } from '../store/useFridge'
 import { usePlan } from '../store/usePlan'
 import { useSearch } from '../store/useSearch'
 import { useSettings } from '../store/useSettings'
+import type { RecipeIngredient } from '../types'
+
+const BASE_PAX = 2
+const MIN_PAX = 1
+const MAX_PAX = 12
+
+function formatScaledNumber(value: number): string {
+  const rounded = Math.round(value * 100) / 100
+  return String(rounded)
+}
 
 function scaleMeasure(measure: string, multiplier: number): string {
   if (multiplier === 1 || !measure.trim()) return measure
-  return measure.replace(/\b(\d+(?:\.\d+)?)\b/g, (rawNum) => {
-    const scaled = Math.round(Number(rawNum) * multiplier * 100) / 100
-    return String(scaled)
-  })
+  return measure.replace(
+    /\b(\d+)\s+(\d+)\/(\d+)\b|\b(\d+)\/(\d+)\b|\b(\d+(?:\.\d+)?)\b/g,
+    (match, whole, fracNum, fracDen, simpleNum, simpleDen, rawNum) => {
+      if (whole !== undefined && fracNum !== undefined && fracDen !== undefined) {
+        const den = Number(fracDen)
+        if (!den) return match
+        const val = Number(whole) + Number(fracNum) / den
+        return formatScaledNumber(val * multiplier)
+      }
+      if (simpleNum !== undefined && simpleDen !== undefined) {
+        const den = Number(simpleDen)
+        if (!den) return match
+        const val = Number(simpleNum) / den
+        return formatScaledNumber(val * multiplier)
+      }
+      if (rawNum !== undefined) {
+        return formatScaledNumber(Number(rawNum) * multiplier)
+      }
+      return match
+    },
+  )
 }
 
 export function RecipePage() {
   const { id = '' } = useParams<{ id: string }>()
+  return <RecipePageContent key={id} id={id} />
+}
+
+function RecipePageContent({ id }: { id: string }) {
   const { recipesById, loading } = useRecipes()
   const savedFavMap = useFavourites((s) => s.recipesById)
   const isFav = useFavourites((s) => s.ids.includes(id))
@@ -41,12 +73,15 @@ export function RecipePage() {
 
   const fridgeItems = useFridge((s) => s.items)
   const addFridgeItem = useFridge((s) => s.addItem)
+  const removeFridgeItem = useFridge((s) => s.removeItem)
   const manualIngredients = useSearch((s) => s.manualIngredients)
   const staples = useSettings((s) => s.staples)
 
   const [showPlanModal, setShowPlanModal] = useState(false)
   const [completedSteps, setCompletedSteps] = useState<Record<number, boolean>>({})
-  const [portionScale, setPortionScale] = useState<number>(1)
+  const [pax, setPax] = useState<number>(BASE_PAX)
+  const [forcedMissing, setForcedMissing] = useState<Set<string>>(() => new Set())
+  const [addedOnPage, setAddedOnPage] = useState<Set<string>>(() => new Set())
 
   const recipe = useMemo(() => {
     const fromDataset = recipesById.get(id)
@@ -78,6 +113,40 @@ export function RecipePage() {
     })
   }, [recipe, combinedAvailable, staples, fridgeItems])
 
+  const displayEvaluation = useMemo(() => {
+    if (!evaluation) return null
+    if (forcedMissing.size === 0) return evaluation
+
+    const haveIngredients: RecipeIngredient[] = []
+    const missingIngredients: RecipeIngredient[] = []
+    const details = evaluation.details.map((detail) => {
+      if (
+        detail.status === 'have' &&
+        forcedMissing.has(normalize(detail.ingredient.name))
+      ) {
+        missingIngredients.push(detail.ingredient)
+        return {
+          ingredient: detail.ingredient,
+          status: 'missing' as const,
+        }
+      }
+      if (detail.status === 'have') {
+        haveIngredients.push(detail.ingredient)
+      } else if (detail.status === 'missing') {
+        missingIngredients.push(detail.ingredient)
+      }
+      return detail
+    })
+
+    return {
+      ...evaluation,
+      details,
+      haveIngredients,
+      missingIngredients,
+      missingCount: missingIngredients.length,
+    }
+  }, [evaluation, forcedMissing])
+
   if (loading && !recipe) {
     return (
       <div className="mx-auto max-w-4xl animate-pulse space-y-6">
@@ -88,7 +157,7 @@ export function RecipePage() {
     )
   }
 
-  if (!recipe || !evaluation) {
+  if (!recipe || !displayEvaluation) {
     return (
       <div className="mx-auto max-w-lg rounded-3xl border border-parchment bg-white p-8 text-center">
         <h1 className="font-display text-2xl font-semibold text-ink">Recipe not found</h1>
@@ -109,6 +178,55 @@ export function RecipePage() {
   const toggleStep = (idx: number) => {
     setCompletedSteps((prev) => ({ ...prev, [idx]: !prev[idx] }))
   }
+
+  const handleMarkHave = (ingredient: RecipeIngredient) => {
+    const norm = normalize(ingredient.name)
+    setForcedMissing((prev) => {
+      if (!prev.has(norm)) return prev
+      const next = new Set(prev)
+      next.delete(norm)
+      return next
+    })
+
+    const alreadyAvailable = combinedAvailable.some((item) =>
+      ingredientMatches(item, ingredient.name),
+    )
+    if (!alreadyAvailable) {
+      addFridgeItem({
+        name: ingredient.name,
+        quantity: ingredient.measure || '1',
+        useBy: '',
+      })
+      setAddedOnPage((prev) => {
+        const next = new Set(prev)
+        next.add(norm)
+        return next
+      })
+    }
+  }
+
+  const handleMarkMissing = (ingredientName: string) => {
+    const norm = normalize(ingredientName)
+    if (addedOnPage.has(norm)) {
+      const addedMatches = fridgeItems.filter((fi) => normalize(fi.name) === norm)
+      for (const item of addedMatches) {
+        removeFridgeItem(item.id)
+      }
+      setAddedOnPage((prev) => {
+        const next = new Set(prev)
+        next.delete(norm)
+        return next
+      })
+    }
+
+    setForcedMissing((prev) => {
+      const next = new Set(prev)
+      next.add(norm)
+      return next
+    })
+  }
+
+  const paxMultiplier = pax / BASE_PAX
 
   return (
     <div className="mx-auto max-w-4xl space-y-8">
@@ -192,24 +310,24 @@ export function RecipePage() {
               <div className="mt-4 flex flex-wrap gap-2 text-xs">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-sage-100 px-3 py-1.5 font-semibold text-sage-800">
                   <CheckCircle2 className="h-3.5 w-3.5 text-sage-700" />
-                  Have {evaluation.haveIngredients.length}
+                  Have {displayEvaluation.haveIngredients.length}
                 </span>
-                {evaluation.stapleIngredients.length > 0 && (
+                {displayEvaluation.stapleIngredients.length > 0 && (
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-cream px-3 py-1.5 font-medium text-ink-muted ring-1 ring-parchment">
                     <Sparkles className="h-3.5 w-3.5 text-sage-600" />
-                    {evaluation.stapleIngredients.length} pantry staples
+                    {displayEvaluation.stapleIngredients.length} pantry staples
                   </span>
                 )}
                 <span
                   className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-semibold ${
-                    evaluation.missingCount === 0
+                    displayEvaluation.missingCount === 0
                       ? 'bg-sage-600 text-white'
                       : 'bg-tomato-50 text-tomato-700 ring-1 ring-tomato-200'
                   }`}
                 >
-                  {evaluation.missingCount === 0
+                  {displayEvaluation.missingCount === 0
                     ? 'Ready to cook — 0 missing!'
-                    : `Missing ${evaluation.missingCount}`}
+                    : `Missing ${displayEvaluation.missingCount}`}
                 </span>
               </div>
             </div>
@@ -236,29 +354,32 @@ export function RecipePage() {
       <div className="grid gap-8 lg:grid-cols-12">
         {/* Ingredients Checklist */}
         <section className="rounded-3xl border border-parchment bg-white p-6 shadow-xs lg:col-span-5 h-fit">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="font-display text-xl font-semibold text-ink">
               Ingredients ({recipe.ingredients.length})
             </h2>
 
-            {/* Portion scaler */}
-            <div className="inline-flex items-center gap-1 rounded-full border border-parchment bg-cream px-2 py-1 text-xs">
+            {/* Pax scaler */}
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-parchment bg-cream px-2.5 py-1 text-xs">
+              <Users className="h-3.5 w-3.5 text-sage-700" aria-hidden="true" />
               <button
                 type="button"
-                aria-label="Decrease portion multiplier"
-                onClick={() => setPortionScale((s) => Math.max(0.5, s - 0.5))}
-                className="rounded-full p-0.5 text-ink-muted hover:bg-white hover:text-ink"
+                aria-label="Decrease pax"
+                onClick={() => setPax((p) => Math.max(MIN_PAX, p - 1))}
+                disabled={pax <= MIN_PAX}
+                className="rounded-full p-0.5 text-ink-muted transition hover:bg-white hover:text-ink disabled:opacity-40 disabled:hover:bg-transparent"
               >
                 <Minus className="h-3.5 w-3.5" />
               </button>
-              <span className="min-w-9 text-center font-semibold text-ink">
-                {portionScale}×
+              <span className="min-w-11 text-center font-semibold text-ink">
+                {pax} pax
               </span>
               <button
                 type="button"
-                aria-label="Increase portion multiplier"
-                onClick={() => setPortionScale((s) => Math.min(4, s + 0.5))}
-                className="rounded-full p-0.5 text-ink-muted hover:bg-white hover:text-ink"
+                aria-label="Increase pax"
+                onClick={() => setPax((p) => Math.min(MAX_PAX, p + 1))}
+                disabled={pax >= MAX_PAX}
+                className="rounded-full p-0.5 text-ink-muted transition hover:bg-white hover:text-ink disabled:opacity-40 disabled:hover:bg-transparent"
               >
                 <Plus className="h-3.5 w-3.5" />
               </button>
@@ -266,8 +387,8 @@ export function RecipePage() {
           </div>
 
           <ul className="mt-4 divide-y divide-parchment/60">
-            {evaluation.details.map(({ ingredient, status, matchedUserItem }) => {
-              const scaled = scaleMeasure(ingredient.measure, portionScale)
+            {displayEvaluation.details.map(({ ingredient, status, matchedUserItem }) => {
+              const scaled = scaleMeasure(ingredient.measure, paxMultiplier)
               return (
                 <li
                   key={`${ingredient.name}-${ingredient.measure}`}
@@ -276,12 +397,15 @@ export function RecipePage() {
                 >
                   <div className="flex items-start gap-2.5">
                     {status === 'have' && (
-                      <span
-                        title={`Matched: ${matchedUserItem ?? ingredient.name}`}
-                        className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sage-600 text-white"
+                      <button
+                        type="button"
+                        onClick={() => handleMarkMissing(ingredient.name)}
+                        aria-label={`Mark ${ingredient.name} as missing`}
+                        title={`Matched: ${matchedUserItem ?? ingredient.name} — click to mark as missing`}
+                        className="mt-0.5 flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-full bg-sage-600 text-white transition hover:bg-sage-700 hover:ring-2 hover:ring-sage-200 focus:outline-none focus:ring-2 focus:ring-sage-400"
                       >
                         <Check className="h-3 w-3" />
-                      </span>
+                      </button>
                     )}
                     {status === 'staple' && (
                       <span
@@ -292,20 +416,19 @@ export function RecipePage() {
                       </span>
                     )}
                     {status === 'missing' && (
-                      <span
-                        title="Missing ingredient"
-                        className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-tomato-100 text-tomato-600"
+                      <button
+                        type="button"
+                        onClick={() => handleMarkHave(ingredient)}
+                        aria-label={`Mark ${ingredient.name} as have`}
+                        title="Missing ingredient — click to mark as have"
+                        className="mt-0.5 flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-full bg-tomato-100 text-tomato-600 transition hover:bg-tomato-200 focus:outline-none focus:ring-2 focus:ring-tomato-300"
                       >
                         <AlertCircle className="h-3.5 w-3.5" />
-                      </span>
+                      </button>
                     )}
 
                     <div>
-                      <p
-                        className={`text-sm font-medium ${
-                          status === 'missing' ? 'text-ink' : 'text-ink'
-                        }`}
-                      >
+                      <p className="text-sm font-medium text-ink">
                         {ingredient.name}
                       </p>
                       <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
@@ -320,13 +443,7 @@ export function RecipePage() {
                             <span className="font-semibold text-tomato-600">Missing</span>
                             <button
                               type="button"
-                              onClick={() =>
-                                addFridgeItem({
-                                  name: ingredient.name,
-                                  quantity: ingredient.measure || '1',
-                                  useBy: '',
-                                })
-                              }
+                              onClick={() => handleMarkHave(ingredient)}
                               className="text-ink-muted underline hover:text-sage-700"
                             >
                               I have this

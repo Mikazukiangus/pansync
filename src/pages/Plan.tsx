@@ -11,7 +11,10 @@ import {
 } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import {
+  Calendar,
   Check,
+  ChevronLeft,
+  ChevronRight,
   ClipboardCopy,
   GripVertical,
   Heart,
@@ -23,18 +26,25 @@ import {
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { DaySlot } from '../components/DaySlot'
+import { OverviewCalendar } from '../components/OverviewCalendar'
 import { useRecipes } from '../hooks/useRecipes'
+import {
+  formatLocalDate,
+  formatShortDayDate,
+  formatSlotLabel,
+  formatWeekCompactRange,
+  formatWeekRange,
+  getWeekDates,
+  getWeekdayShort,
+  getWeekStartMonday,
+  makeDatedSlotKey,
+} from '../lib/dates'
 import { buildShoppingList, formatShoppingListText } from '../lib/shopping'
 import { useFavourites } from '../store/useFavourites'
 import { useFridge } from '../store/useFridge'
 import { usePlan } from '../store/usePlan'
 import { useSettings } from '../store/useSettings'
-import {
-  DAYS_OF_WEEK,
-  MEAL_SLOTS,
-  type PlanSlotKey,
-  type Recipe,
-} from '../types'
+import { MEAL_SLOTS, type PlanSlotKey, type Recipe } from '../types'
 
 function DraggablePaletteRecipe({
   recipe,
@@ -96,13 +106,27 @@ export function Plan() {
   const setSlot = usePlan((s) => s.setSlot)
   const removeSlot = usePlan((s) => s.removeSlot)
   const moveSlot = usePlan((s) => s.moveSlot)
-  const clearPlan = usePlan((s) => s.clearPlan)
+  const clearWeek = usePlan((s) => s.clearWeek)
   const toggleChecked = usePlan((s) => s.toggleChecked)
 
   const fridgeItems = useFridge((s) => s.items)
   const staples = useSettings((s) => s.staples)
 
+  const [today] = useState<Date>(() => new Date())
+  const todayYmd = useMemo(() => formatLocalDate(today), [today])
+  const currentWeekStart = useMemo(() => getWeekStartMonday(today), [today])
+  const currentWeekYmd = useMemo(
+    () => formatLocalDate(currentWeekStart),
+    [currentWeekStart],
+  )
+
+  const [weekStart, setWeekStart] = useState<Date>(() => currentWeekStart)
+  const [calendarYear, setCalendarYear] = useState<number>(() => today.getFullYear())
+  const [calendarMonth, setCalendarMonth] = useState<number>(() => today.getMonth())
+  const [selectedDateYmd, setSelectedDateYmd] = useState<string>(() => todayYmd)
+
   const [sidebarTab, setSidebarTab] = useState<'favourites' | 'recent'>('favourites')
+  const [shoppingScope, setShoppingScope] = useState<'week' | 'all'>('week')
   const [activeDragRecipe, setActiveDragRecipe] = useState<Recipe | null>(null)
   const [pickingSlot, setPickingSlot] = useState<PlanSlotKey | null>(null)
   const [modalFilter, setModalFilter] = useState('')
@@ -112,6 +136,65 @@ export function Plan() {
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor),
   )
+
+  const expandedWeekDates = useMemo(() => getWeekDates(weekStart), [weekStart])
+  const expandedWeekYmds = useMemo(
+    () => expandedWeekDates.map((d) => formatLocalDate(d)),
+    [expandedWeekDates],
+  )
+  const activeWeekStartYmd = formatLocalDate(weekStart)
+  const isCurrentWeek = activeWeekStartYmd === currentWeekYmd
+
+  // Scrollable week strip centered around the active week (-3..+4 weeks)
+  const scrollableWeeks = useMemo(() => {
+    return [-3, -2, -1, 0, 1, 2, 3, 4].map((offset) => {
+      const ws = new Date(weekStart)
+      ws.setDate(ws.getDate() + offset * 7)
+      const dates = getWeekDates(ws)
+      const ymds = dates.map((d) => formatLocalDate(d))
+      let plannedCount = 0
+      for (const ymd of ymds) {
+        for (const meal of MEAL_SLOTS) {
+          if (slots[makeDatedSlotKey(ymd, meal)]) plannedCount += 1
+        }
+      }
+      return {
+        weekStart: ws,
+        key: formatLocalDate(ws),
+        label: formatWeekCompactRange(ws),
+        isCurrent: formatLocalDate(ws) === currentWeekYmd,
+        isActive: offset === 0,
+        plannedCount,
+      }
+    })
+  }, [weekStart, slots, currentWeekYmd])
+
+  const selectWeek = (nextWeekStart: Date, focusDate?: Date) => {
+    const normalizedStart = getWeekStartMonday(nextWeekStart)
+    setWeekStart(normalizedStart)
+    const syncTarget = focusDate ?? normalizedStart
+    setCalendarYear(syncTarget.getFullYear())
+    setCalendarMonth(syncTarget.getMonth())
+    if (focusDate) {
+      setSelectedDateYmd(formatLocalDate(focusDate))
+    }
+  }
+
+  const shiftWeek = (deltaWeeks: number) => {
+    const next = new Date(weekStart)
+    next.setDate(next.getDate() + deltaWeeks * 7)
+    selectWeek(next)
+  }
+
+  const jumpToToday = () => {
+    selectWeek(currentWeekStart, today)
+  }
+
+  const shiftCalendarMonth = (deltaMonths: number) => {
+    const next = new Date(calendarYear, calendarMonth + deltaMonths, 1)
+    setCalendarYear(next.getFullYear())
+    setCalendarMonth(next.getMonth())
+  }
 
   const favouriteList = useMemo(
     () =>
@@ -126,20 +209,30 @@ export function Plan() {
     return recipes.slice(0, 8)
   }, [recentRecipes, recipes])
 
-  const plannedRecipesList = useMemo(() => {
+  const expandedWeekRecipesList = useMemo(() => {
     const list: Recipe[] = []
-    for (const day of DAYS_OF_WEEK) {
+    for (const ymd of expandedWeekYmds) {
       for (const meal of MEAL_SLOTS) {
-        const r = slots[`${day}-${meal}`]
+        const r = slots[makeDatedSlotKey(ymd, meal)]
         if (r) list.push(r)
       }
     }
     return list
+  }, [expandedWeekYmds, slots])
+
+  const allPlannedRecipesList = useMemo(() => {
+    return Object.entries(slots)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([, recipe]) => recipe)
+      .filter((r): r is Recipe => Boolean(r))
   }, [slots])
 
+  const activeShoppingRecipes =
+    shoppingScope === 'all' ? allPlannedRecipesList : expandedWeekRecipesList
+
   const shoppingItems = useMemo(
-    () => buildShoppingList(plannedRecipesList, fridgeItems, staples),
-    [plannedRecipesList, fridgeItems, staples],
+    () => buildShoppingList(activeShoppingRecipes, fridgeItems, staples),
+    [activeShoppingRecipes, fridgeItems, staples],
   )
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -176,7 +269,6 @@ export function Plan() {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      // Fallback textarea copy if clipboard permission restricted
       const el = document.createElement('textarea')
       el.value = text
       document.body.appendChild(el)
@@ -217,13 +309,13 @@ export function Plan() {
           <div>
             <h1 className="font-display text-3xl font-bold text-ink">Weekly Meal Plan</h1>
             <p className="mt-1 text-sm text-ink-muted">
-              Drag recipes onto any Lunch or Dinner slot — or click an empty slot to pick. Your shopping list updates live.
+              Check planned days on the calendar, scroll between weeks, and drag or pick recipes for Breakfast, Lunch, and Dinner.
             </p>
           </div>
-          {plannedRecipesList.length > 0 && (
+          {expandedWeekRecipesList.length > 0 && (
             <button
               type="button"
-              onClick={clearPlan}
+              onClick={() => clearWeek(expandedWeekYmds)}
               className="inline-flex items-center gap-1.5 rounded-xl border border-parchment bg-white px-3.5 py-2 text-xs font-semibold text-ink-muted transition hover:border-tomato-200 hover:bg-tomato-50 hover:text-tomato-700"
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -232,9 +324,171 @@ export function Plan() {
           )}
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-12">
+        <div className="grid gap-6 lg:grid-cols-12 lg:items-start">
+          {/* Overview Calendar */}
+          <div className="order-1 lg:col-span-4 lg:col-start-1 lg:row-start-1">
+            <OverviewCalendar
+              year={calendarYear}
+              month={calendarMonth}
+              todayYmd={todayYmd}
+              selectedDateYmd={selectedDateYmd}
+              expandedWeekYmds={expandedWeekYmds}
+              slots={slots}
+              onPrevMonth={() => shiftCalendarMonth(-1)}
+              onNextMonth={() => shiftCalendarMonth(1)}
+              onToday={jumpToToday}
+              onSelectDate={(date) => selectWeek(date, date)}
+            />
+          </div>
+
+          {/* Expanded 1-Week Meal Grid (at most 1 week expanded at a time) */}
+          <section
+            aria-label="Expanded week meal plan"
+            className="order-2 space-y-4 lg:col-span-8 lg:col-start-5 lg:row-span-2 lg:row-start-1"
+          >
+            {/* Week Stepper & Scrollable Week Strip */}
+            <div className="rounded-3xl border border-parchment bg-white p-4 shadow-xs">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    aria-label="Previous week"
+                    onClick={() => shiftWeek(-1)}
+                    className="rounded-full border border-parchment bg-cream p-1.5 text-ink-muted transition hover:border-sage-300 hover:bg-white hover:text-ink"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-sage-700" aria-hidden="true" />
+                    <h2 className="font-display text-lg font-semibold text-ink">
+                      {formatWeekRange(weekStart)}
+                    </h2>
+                  </div>
+
+                  <button
+                    type="button"
+                    aria-label="Next week"
+                    onClick={() => shiftWeek(1)}
+                    className="rounded-full border border-parchment bg-cream p-1.5 text-ink-muted transition hover:border-sage-300 hover:bg-white hover:text-ink"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {!isCurrentWeek && (
+                    <button
+                      type="button"
+                      onClick={jumpToToday}
+                      className="rounded-full border border-sage-300 bg-sage-50 px-3 py-1 text-xs font-semibold text-sage-800 transition hover:bg-sage-100"
+                    >
+                      This week
+                    </button>
+                  )}
+                  <span className="rounded-full bg-cream px-3 py-1 text-xs font-semibold text-ink-muted">
+                    {expandedWeekRecipesList.length} meal
+                    {expandedWeekRecipesList.length === 1 ? '' : 's'} planned
+                  </span>
+                </div>
+              </div>
+
+              {/* Scrollable week switcher bar */}
+              <div
+                aria-label="Scroll between weeks"
+                className="mt-3 flex gap-2 overflow-x-auto pb-1"
+              >
+                {scrollableWeeks.map((w) => (
+                  <button
+                    key={w.key}
+                    type="button"
+                    onClick={() => selectWeek(w.weekStart)}
+                    aria-pressed={w.isActive}
+                    className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                      w.isActive
+                        ? 'border-sage-600 bg-sage-600 text-white shadow-2xs'
+                        : w.isCurrent
+                          ? 'border-sage-300 bg-sage-50 text-sage-800 hover:bg-sage-100'
+                          : 'border-parchment bg-cream/60 text-ink-muted hover:border-sage-300 hover:bg-white hover:text-ink'
+                    }`}
+                  >
+                    <span>{w.isCurrent ? `This week · ${w.label}` : w.label}</span>
+                    {w.plannedCount > 0 && (
+                      <span
+                        className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
+                          w.isActive
+                            ? 'bg-white/25 text-white'
+                            : 'bg-sage-200/80 text-sage-800'
+                        }`}
+                      >
+                        {w.plannedCount}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Strictly 1 expanded week (7 days Mon–Sun) in linear top-to-bottom order */}
+            <div className="space-y-3">
+              {expandedWeekDates.map((dateObj) => {
+                const ymd = formatLocalDate(dateObj)
+                const weekday = getWeekdayShort(dateObj)
+                const dateLabel = formatShortDayDate(dateObj)
+                const isToday = ymd === todayYmd
+                const isSelected = ymd === selectedDateYmd
+
+                return (
+                  <div
+                    key={ymd}
+                    data-plan-date={ymd}
+                    className={`rounded-3xl border p-4 shadow-2xs transition ${
+                      isToday
+                        ? 'border-sage-400 bg-white ring-2 ring-sage-200/80'
+                        : isSelected
+                          ? 'border-sage-300 bg-white'
+                          : 'border-parchment bg-white/85'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-baseline gap-2">
+                        <h3 className="font-display text-lg font-semibold text-ink">
+                          {weekday}
+                        </h3>
+                        <span className="text-xs font-medium text-ink-muted">
+                          {dateLabel}
+                        </span>
+                      </div>
+                      {isToday && (
+                        <span className="rounded-full bg-sage-100 px-2.5 py-0.5 text-[11px] font-bold text-sage-800">
+                          Today
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="mt-3 space-y-2">
+                      {MEAL_SLOTS.map((meal) => {
+                        const slotKey = makeDatedSlotKey(ymd, meal)
+                        return (
+                          <DaySlot
+                            key={slotKey}
+                            slotKey={slotKey}
+                            meal={meal}
+                            recipe={slots[slotKey]}
+                            onEmptyClick={setPickingSlot}
+                            onRemove={removeSlot}
+                          />
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+
           {/* Draggable Sidebar Palette */}
-          <aside className="rounded-3xl border border-parchment bg-white p-5 shadow-xs lg:col-span-4 h-fit">
+          <aside className="order-3 rounded-3xl border border-parchment bg-white p-5 shadow-xs lg:col-span-4 lg:col-start-1 lg:row-start-2">
             <div className="grid grid-cols-2 gap-1 rounded-2xl bg-cream p-1">
               <button
                 type="button"
@@ -263,7 +517,7 @@ export function Plan() {
             </div>
 
             <p className="mt-3 text-xs text-ink-muted">
-              Drag a recipe onto a day slot on the right:
+              Drag a recipe onto any day slot in the expanded week:
             </p>
 
             <div className="mt-3 max-h-96 space-y-2 overflow-y-auto pr-1">
@@ -284,35 +538,6 @@ export function Plan() {
               )}
             </div>
           </aside>
-
-          {/* Mon-Sun Grid */}
-          <section className="space-y-4 lg:col-span-8">
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {DAYS_OF_WEEK.map((day) => (
-                <div
-                  key={day}
-                  className="rounded-3xl border border-parchment bg-white/80 p-4 shadow-2xs"
-                >
-                  <h2 className="font-display text-lg font-semibold text-ink">{day}</h2>
-                  <div className="mt-3 space-y-2.5">
-                    {MEAL_SLOTS.map((meal) => {
-                      const slotKey: PlanSlotKey = `${day}-${meal}`
-                      return (
-                        <DaySlot
-                          key={slotKey}
-                          slotKey={slotKey}
-                          meal={meal}
-                          recipe={slots[slotKey]}
-                          onEmptyClick={setPickingSlot}
-                          onRemove={removeSlot}
-                        />
-                      )
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
         </div>
 
         {/* Consolidated Smart Shopping List */}
@@ -327,37 +552,66 @@ export function Plan() {
                   Shopping List ({shoppingItems.length})
                 </h2>
                 <p className="mt-0.5 text-xs text-ink-muted">
-                  Duplicates merged across {plannedRecipesList.length} planned meal
-                  {plannedRecipesList.length === 1 ? '' : 's'} · {fridgeItems.length} fridge item
+                  Duplicates merged across {activeShoppingRecipes.length} planned meal
+                  {activeShoppingRecipes.length === 1 ? '' : 's'} · {fridgeItems.length} fridge item
                   {fridgeItems.length === 1 ? '' : 's'} &amp; {staples.length} pantry staples automatically subtracted.
                 </p>
               </div>
             </div>
 
-            {shoppingItems.length > 0 && (
-              <button
-                type="button"
-                onClick={handleCopyList}
-                className="inline-flex items-center gap-2 rounded-2xl bg-sage-600 px-4 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-sage-700"
-              >
-                {copied ? (
-                  <>
-                    <Check className="h-4 w-4" />
-                    Copied to clipboard!
-                  </>
-                ) : (
-                  <>
-                    <ClipboardCopy className="h-4 w-4" />
-                    Copy shopping list
-                  </>
-                )}
-              </button>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              {allPlannedRecipesList.length > expandedWeekRecipesList.length && (
+                <div className="inline-flex rounded-full border border-parchment bg-cream p-0.5 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setShoppingScope('week')}
+                    className={`rounded-full px-3 py-1.5 font-semibold transition ${
+                      shoppingScope === 'week'
+                        ? 'bg-white text-ink shadow-2xs'
+                        : 'text-ink-muted hover:text-ink'
+                    }`}
+                  >
+                    This week ({expandedWeekRecipesList.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShoppingScope('all')}
+                    className={`rounded-full px-3 py-1.5 font-semibold transition ${
+                      shoppingScope === 'all'
+                        ? 'bg-white text-ink shadow-2xs'
+                        : 'text-ink-muted hover:text-ink'
+                    }`}
+                  >
+                    All planned ({allPlannedRecipesList.length})
+                  </button>
+                </div>
+              )}
+
+              {shoppingItems.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleCopyList}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-sage-600 px-4 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-sage-700"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="h-4 w-4" />
+                      Copied to clipboard!
+                    </>
+                  ) : (
+                    <>
+                      <ClipboardCopy className="h-4 w-4" />
+                      Copy shopping list
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
 
-          {plannedRecipesList.length === 0 ? (
+          {activeShoppingRecipes.length === 0 ? (
             <div className="mt-6 rounded-2xl border border-dashed border-parchment bg-cream/40 p-8 text-center text-sm text-ink-muted">
-              Add at least one recipe to your weekly plan above to generate your shopping list.
+              Add at least one recipe to {shoppingScope === 'week' ? 'this week’s plan' : 'your meal plan'} above to generate your shopping list.
             </div>
           ) : shoppingItems.length === 0 ? (
             <div className="mt-6 rounded-2xl border border-sage-200 bg-sage-50 p-6 text-center text-sm font-medium text-sage-800">
@@ -438,7 +692,7 @@ export function Plan() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 id="slot-picker-heading" className="font-display text-xl font-semibold text-ink">
-                  Choose meal for {pickingSlot.replace('-', ' ')}
+                  Choose meal for {formatSlotLabel(pickingSlot)}
                 </h2>
                 <p className="text-xs text-ink-muted">
                   Pick from your favourites, recent matches, or search all recipes

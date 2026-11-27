@@ -43,10 +43,9 @@ No sign-up, no backend, and no secret API keys required — with automatic Index
   - Automatically merges duplicate ingredients and numeric quantities across planned meals (`200g + 300g → 500g`), removes everything already in your **Fridge** or **Pantry Staples**, persists checkboxes, and copies cleanly to the clipboard.
 - **Pantry Staples & Dietary Exclusions**:
   - Manage custom pantry staples (`salt`, `pepper`, `oil`, `water` by default) and allergen/disliked-ingredient exclusions from the top **Staples** modal.
-- **Resilient Serverless Data Layer (`api/mealsdb.ts`, `api/health.ts`, `src/data/mealdb.ts`)**:
-  - Vercel Serverless Functions at project root (`api/health.ts` and `api/mealsdb.ts`) proxy all TheMealDB OpenAPI v1 endpoints (`search`, `lookup`, `filter`, `list`, `categories`, `random`, `randomselection`, `latest`) using a server-side `THEMEALDB_API_KEY` environment variable (zero hardcoded keys).
-  - Fetches the full recipe index (`a`–`z` in parallel) and ingredient directory on first visit via `/api/mealsdb`, caching both in IndexedDB (`idb-keyval`) for 7 days so subsequent searches run locally in `< 5ms`.
-  - Falls back automatically to 20 original leftover-friendly recipes (`src/data/fallback-recipes.json`) with emoji/gradient cards and an offline status banner whenever the API is unreachable or `THEMEALDB_API_KEY` is not yet configured (also previewable anytime at `/?offline=1`).
+- **Resilient Data Layer (`src/data/mealdb.ts`)**:
+  - Fetches the full TheMealDB index (`a`–`z` in parallel) and ingredient directory on first visit, caching both in IndexedDB (`idb-keyval`) for 7 days so subsequent searches run locally in `< 5ms` with zero network calls.
+  - Falls back to 20 original leftover-friendly recipes (`src/data/fallback-recipes.json`) with emoji/gradient cards and an offline status banner whenever TheMealDB is unreachable (previewable anytime at `/?offline=1`).
 
 ---
 
@@ -65,14 +64,10 @@ No sign-up, no backend, and no secret API keys required — with automatic Index
 # Install dependencies
 npm install
 
-# Configure your TheMealDB API key locally (not committed to git)
-cp .env.example .env.local
-# Edit .env.local and set THEMEALDB_API_KEY=<your-key>
-
-# Start local dev server (includes local /api/health & /api/mealsdb middleware)
+# Start local dev server on http://127.0.0.1:5173
 npm run dev
 
-# Run unit, API, store, caching, and end-to-end flow tests
+# Run unit, store, caching, and end-to-end flow tests
 npm test
 
 # Lint and build static production bundle (dist/)
@@ -80,11 +75,6 @@ npm run lint
 npm run build
 ```
 
-### Serverless Endpoints (`/api`)
-
-- `GET /api/health` — Returns service health and whether `THEMEALDB_API_KEY` is configured (`?probe=1` performs a live upstream connectivity check).
-- `GET /api/mealsdb?endpoint=<op>&...` — Validates parameters against TheMealDB OpenAPI v1 (`search`, `lookup`, `filter`, `list`, `categories`, `random`, `randomselection`, `latest`) and proxies requests using `process.env.THEMEALDB_API_KEY`.
-
 ### Deploying to Vercel
 
-PanSync deploys directly to Vercel with `api/` Serverless Functions and SPA deep-link rewrites preconfigured in [`vercel.json`](./vercel.json). Add `THEMEALDB_API_KEY` in **Vercel Project Settings → Environment Variables** before deploying.
+PanSync compiles to a pure static bundle (`dist/`) with SPA deep-link rewrites preconfigured in [`vercel.json`](./vercel.json) — zero environment variables required.

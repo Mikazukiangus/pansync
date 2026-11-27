@@ -1,4 +1,4 @@
-import type { ExpiryStatus, FridgeItem } from '../types'
+import type { DayOfWeek, ExpiryStatus, FridgeItem, MealSlotType, PlanSlotKey } from '../types'
 
 /**
  * Parse a YYYY-MM-DD date string into a local midnight Date.
@@ -117,4 +117,139 @@ export function sortFridgeItemsByExpiry(
     if (da !== db) return da - db
     return a.name.localeCompare(b.name)
   })
+}
+
+const WEEKDAY_NAMES: readonly DayOfWeek[] = [
+  'Sun',
+  'Mon',
+  'Tue',
+  'Wed',
+  'Thu',
+  'Fri',
+  'Sat',
+]
+
+const SHORT_MONTH_NAMES = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+] as const
+
+const FULL_MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+] as const
+
+/**
+ * Local midnight Date for the Monday of the week containing `date`.
+ */
+export function getWeekStartMonday(date: Date = new Date()): Date {
+  const local = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  const diffToMonday = (local.getDay() + 6) % 7
+  local.setDate(local.getDate() - diffToMonday)
+  return local
+}
+
+/**
+ * Return the 7 local midnight Date objects (Mon..Sun) for the week starting at `weekStart`.
+ */
+export function getWeekDates(weekStart: Date): Date[] {
+  const start = new Date(
+    weekStart.getFullYear(),
+    weekStart.getMonth(),
+    weekStart.getDate(),
+  )
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(start)
+    d.setDate(start.getDate() + i)
+    return d
+  })
+}
+
+/**
+ * Return full Mon..Sun weeks covering the given `year` and 0-based `monthIndex`.
+ */
+export function getMonthGridDates(year: number, monthIndex: number): Date[] {
+  const firstOfMonth = new Date(year, monthIndex, 1)
+  const lastOfMonth = new Date(year, monthIndex + 1, 0)
+  const gridStart = getWeekStartMonday(firstOfMonth)
+  const lastWeekStart = getWeekStartMonday(lastOfMonth)
+  const lastGridDay = new Date(lastWeekStart)
+  lastGridDay.setDate(lastWeekStart.getDate() + 6)
+
+  const dates: Date[] = []
+  const cursor = new Date(gridStart)
+  while (cursor <= lastGridDay) {
+    dates.push(new Date(cursor))
+    cursor.setDate(cursor.getDate() + 1)
+  }
+  return dates
+}
+
+export function getWeekdayShort(date: Date): DayOfWeek {
+  return WEEKDAY_NAMES[date.getDay()]
+}
+
+export function formatShortDayDate(date: Date): string {
+  return `${SHORT_MONTH_NAMES[date.getMonth()]} ${date.getDate()}`
+}
+
+export function formatMonthYear(year: number, monthIndex: number): string {
+  return `${FULL_MONTH_NAMES[monthIndex]} ${year}`
+}
+
+export function formatWeekRange(weekStart: Date): string {
+  const dates = getWeekDates(weekStart)
+  const first = dates[0]
+  const last = dates[6]
+  if (first.getFullYear() !== last.getFullYear()) {
+    return `${formatShortDayDate(first)}, ${first.getFullYear()} – ${formatShortDayDate(last)}, ${last.getFullYear()}`
+  }
+  if (first.getMonth() === last.getMonth()) {
+    return `${SHORT_MONTH_NAMES[first.getMonth()]} ${first.getDate()} – ${last.getDate()}, ${first.getFullYear()}`
+  }
+  return `${formatShortDayDate(first)} – ${formatShortDayDate(last)}, ${last.getFullYear()}`
+}
+
+export function formatWeekCompactRange(weekStart: Date): string {
+  const dates = getWeekDates(weekStart)
+  const first = dates[0]
+  const last = dates[6]
+  if (first.getMonth() === last.getMonth()) {
+    return `${SHORT_MONTH_NAMES[first.getMonth()]} ${first.getDate()}–${last.getDate()}`
+  }
+  return `${SHORT_MONTH_NAMES[first.getMonth()]} ${first.getDate()}–${SHORT_MONTH_NAMES[last.getMonth()]} ${last.getDate()}`
+}
+
+export function makeDatedSlotKey(dateYmd: string, meal: MealSlotType): PlanSlotKey {
+  return `${dateYmd}-${meal}`
+}
+
+export function formatSlotLabel(slotKey: string): string {
+  const match = /^(\d{4}-\d{2}-\d{2})-(Breakfast|Lunch|Dinner)$/.exec(slotKey)
+  if (!match) {
+    return slotKey.replace('-', ' ')
+  }
+  const date = parseLocalDate(match[1])
+  if (!date) return slotKey.replace('-', ' ')
+  return `${getWeekdayShort(date)}, ${formatShortDayDate(date)} · ${match[2]}`
 }

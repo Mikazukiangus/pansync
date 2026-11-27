@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { PlanSlotKey, Recipe } from '../types'
+import { MEAL_SLOTS, type PlanSlotKey, type Recipe } from '../types'
 
 interface PlanState {
   slots: Partial<Record<PlanSlotKey, Recipe>>
@@ -9,6 +9,7 @@ interface PlanState {
   setSlot: (key: PlanSlotKey, recipe: Recipe) => void
   removeSlot: (key: PlanSlotKey) => void
   moveSlot: (from: PlanSlotKey, to: PlanSlotKey) => void
+  clearWeek: (dateYmds: readonly string[]) => void
   clearPlan: () => void
   toggleChecked: (itemKey: string) => void
   clearChecked: () => void
@@ -40,11 +41,24 @@ export const usePlan = create<PlanState>()(
           const moving = state.slots[from]
           if (!moving) return state
           const targetExisting = state.slots[to]
-          const next = { ...state.slots, [to]: moving }
+          const next: Partial<Record<PlanSlotKey, Recipe>> = {
+            ...state.slots,
+            [to]: moving,
+          }
           if (targetExisting) {
             next[from] = targetExisting
           } else {
             delete next[from]
+          }
+          return { slots: next }
+        }),
+      clearWeek: (dateYmds) =>
+        set((state) => {
+          const next = { ...state.slots }
+          for (const ymd of dateYmds) {
+            for (const meal of MEAL_SLOTS) {
+              delete next[`${ymd}-${meal}`]
+            }
           }
           return { slots: next }
         }),

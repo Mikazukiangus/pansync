@@ -3,8 +3,14 @@ import {
   addDaysToDate,
   daysUntil,
   formatExpiryLabel,
+  formatLocalDate,
+  formatSlotLabel,
+  formatWeekRange,
   getExpiryStatus,
   getExpiryUrgencyBonus,
+  getMonthGridDates,
+  getWeekDates,
+  getWeekStartMonday,
   parseLocalDate,
   sortFridgeItemsByExpiry,
 } from '../lib/dates'
@@ -66,5 +72,24 @@ describe('dates helpers', () => {
     ]
     const sorted = sortFridgeItemsByExpiry(items, refToday)
     expect(sorted.map((i) => i.name)).toEqual(['Milk', 'Spinach', 'Carrots', 'Honey'])
+  })
+
+  it('computes Monday-anchored weeks, full month grids, and slot labels', () => {
+    const weekStart = getWeekStartMonday(refToday) // Friday Nov 27, 2026 -> Monday Nov 23
+    expect(formatLocalDate(weekStart)).toBe('2026-11-23')
+
+    const weekDates = getWeekDates(weekStart)
+    expect(weekDates).toHaveLength(7)
+    expect(formatLocalDate(weekDates[0])).toBe('2026-11-23')
+    expect(formatLocalDate(weekDates[6])).toBe('2026-11-29')
+    expect(formatWeekRange(weekStart)).toBe('Nov 23 – 29, 2026')
+
+    const novGrid = getMonthGridDates(2026, 10) // Nov 2026
+    expect(novGrid.length % 7).toBe(0)
+    expect(formatLocalDate(novGrid[0])).toBe('2026-10-26')
+    expect(formatLocalDate(novGrid[novGrid.length - 1])).toBe('2026-12-06')
+
+    expect(formatSlotLabel('2026-11-26-Breakfast')).toBe('Thu, Nov 26 · Breakfast')
+    expect(formatSlotLabel('2026-11-26-Dinner')).toBe('Thu, Nov 26 · Dinner')
   })
 })

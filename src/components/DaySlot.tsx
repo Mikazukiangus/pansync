@@ -2,6 +2,7 @@ import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, Plus, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { formatSlotLabel } from '../lib/dates'
 import type { MealSlotType, PlanSlotKey, Recipe } from '../types'
 
 interface DaySlotProps {
@@ -10,6 +11,12 @@ interface DaySlotProps {
   recipe?: Recipe
   onEmptyClick: (slotKey: PlanSlotKey) => void
   onRemove: (slotKey: PlanSlotKey) => void
+}
+
+const MEAL_DOT_CLASS: Record<MealSlotType, string> = {
+  Breakfast: 'bg-honey-500',
+  Lunch: 'bg-sage-600',
+  Dinner: 'bg-tomato-500',
 }
 
 export function DaySlot({
@@ -46,7 +53,7 @@ export function DaySlot({
     <div
       ref={setDropRef}
       data-slot-key={slotKey}
-      className={`rounded-2xl border p-2.5 transition ${
+      className={`flex flex-col gap-1.5 rounded-2xl border p-2.5 transition sm:flex-row sm:items-center sm:gap-3 ${
         isOver
           ? 'border-sage-500 bg-sage-50 ring-2 ring-sage-500/25'
           : recipe
@@ -54,16 +61,20 @@ export function DaySlot({
             : 'border-dashed border-parchment bg-cream/40 hover:border-sage-300 hover:bg-white/70'
       }`}
     >
-      <div className="mb-1.5 flex items-center justify-between">
-        <span className="text-[11px] font-bold tracking-wider text-ink-subtle uppercase">
+      <div className="flex items-center justify-between sm:w-24 sm:shrink-0">
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold tracking-wider text-ink-subtle uppercase">
+          <span
+            className={`h-2 w-2 rounded-full ${MEAL_DOT_CLASS[meal]}`}
+            aria-hidden="true"
+          />
           {meal}
         </span>
         {recipe && (
           <button
             type="button"
             onClick={() => onRemove(slotKey)}
-            aria-label={`Clear ${slotKey}`}
-            className="rounded-full p-0.5 text-ink-subtle transition hover:bg-tomato-50 hover:text-tomato-600"
+            aria-label={`Clear ${formatSlotLabel(slotKey)}`}
+            className="rounded-full p-0.5 text-ink-subtle transition hover:bg-tomato-50 hover:text-tomato-600 sm:hidden"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -74,7 +85,7 @@ export function DaySlot({
         <div
           ref={setDragRef}
           style={style}
-          className={`flex items-center gap-2 rounded-xl bg-cream/70 p-2 ${
+          className={`flex min-w-0 flex-1 items-center gap-2 rounded-xl bg-cream/70 p-2 ${
             isDragging ? 'opacity-40' : ''
           }`}
         >
@@ -92,26 +103,35 @@ export function DaySlot({
             <img
               src={recipe.image}
               alt=""
-              className="h-9 w-9 shrink-0 rounded-lg object-cover"
+              className="h-8 w-8 shrink-0 rounded-lg object-cover"
             />
           ) : (
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sage-100 text-lg">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sage-100 text-base">
               {recipe.emoji ?? '🍲'}
             </div>
           )}
 
           <Link
             to={`/recipe/${recipe.id}`}
-            className="line-clamp-2 flex-1 text-xs leading-snug font-semibold text-ink hover:text-sage-700 hover:underline"
+            className="line-clamp-1 flex-1 text-xs font-semibold text-ink hover:text-sage-700 hover:underline"
           >
             {recipe.name}
           </Link>
+
+          <button
+            type="button"
+            onClick={() => onRemove(slotKey)}
+            aria-label={`Clear ${formatSlotLabel(slotKey)}`}
+            className="hidden rounded-full p-1 text-ink-subtle transition hover:bg-tomato-50 hover:text-tomato-600 sm:inline-flex"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
         </div>
       ) : (
         <button
           type="button"
           onClick={() => onEmptyClick(slotKey)}
-          className="flex w-full items-center justify-center gap-1 rounded-xl py-3 text-xs font-medium text-ink-muted transition hover:text-sage-700"
+          className="flex flex-1 items-center justify-center gap-1 rounded-xl py-2 text-xs font-medium text-ink-muted transition hover:text-sage-700 sm:justify-start sm:px-2"
         >
           <Plus className="h-3.5 w-3.5" />
           Choose meal

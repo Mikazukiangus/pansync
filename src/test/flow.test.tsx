@@ -85,7 +85,7 @@ describe('End-to-end user flow (Find -> Recipe -> Favourite -> Plan & Shopping L
 
     await user.click(screen.getByRole('button', { name: /Add to plan/i }))
     const dialog = screen.getByRole('dialog')
-    await user.click(within(dialog).getByRole('button', { name: /Save to Mon Dinner/i }))
+    await user.click(within(dialog).getByRole('button', { name: /Save to .*Dinner/i }))
 
     // 5. Navigate to Plan page and verify Shopping List leaves out Garlic (in fridge) & Oil/Pepper (staples),
     // while keeping Rice/Eggs/Spring Onions (not in Fridge tracker, only typed in search) and Soy Sauce!
