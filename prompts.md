@@ -296,3 +296,11 @@ i want to add another api for OpenFoodFacts. Refer to the documentation to add t
 ### Prompt 16 Clarifications Confirmed
 - **Scope**: Backend & data layer only (`api/openfoodfacts.ts`, `src/data/openfoodfacts.ts`, `api/health.ts`, `vite.config.ts`, tests — zero UI edits).
 - **Default User-Agent**: `PanSync/1.0 (pansync.vercel.app)` (overridable via `OPENFOODFACTS_USER_AGENT`).
+
+---
+
+## Prompt 17 — `2026-11-27 14:43:42 +08:00`
+
+```text
+is this done?
+```
