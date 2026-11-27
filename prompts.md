@@ -243,3 +243,11 @@ Also the format of reading mon tue wed in a zig zag form hard to read. can we do
 ```text
 could you do a smoke test to check if this api is working normally?
 ```
+
+---
+
+## Prompt 13 — `2026-11-27 14:26:23 +08:00`
+
+```text
+can you add on the first page and the bottom of the page whether the api health is good or not? green for all ok. 
+```

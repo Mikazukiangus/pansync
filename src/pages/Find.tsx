@@ -9,6 +9,7 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AddToPlanModal } from '../components/AddToPlanModal'
+import { ApiHealthStatus } from '../components/ApiHealthStatus'
 import { ExpiryBadge } from '../components/ExpiryBadge'
 import { IngredientInput } from '../components/IngredientInput'
 import { RecipeCard } from '../components/RecipeCard'
@@ -334,6 +335,8 @@ export function Find() {
         recipe={planningRecipe}
         onClose={() => setPlanningRecipe(null)}
       />
+
+      <ApiHealthStatus />
     </div>
   )
 }
