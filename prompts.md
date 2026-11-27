@@ -232,3 +232,11 @@ Attached is just an example how the api is called when a search for food is done
 ```
 
 *(Attached screenshot showing TheMealDB v1 endpoints: Search meal by name `search.php?s=Arrabiata`, List all meals by first letter `search.php?f=a`, Lookup full meal details by id `lookup.php?i=52772`, and Lookup a single random meal `random.php`.)*
+
+---
+
+## Prompt 10 — `2026-11-27 14:14:30 +08:00`
+
+```text
+let me know when this is done and that i can push. also take note that the UI of the website is being updated by other team members, so avoid changing any code that affects the UI.
+```

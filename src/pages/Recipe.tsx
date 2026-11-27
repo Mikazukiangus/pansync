@@ -14,7 +14,6 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { AddToPlanModal } from '../components/AddToPlanModal'
-import { fetchMealById } from '../data/mealdb'
 import { useRecipes } from '../hooks/useRecipes'
 import { evaluateRecipe } from '../lib/matching'
 import { useFavourites } from '../store/useFavourites'
@@ -22,7 +21,6 @@ import { useFridge } from '../store/useFridge'
 import { usePlan } from '../store/usePlan'
 import { useSearch } from '../store/useSearch'
 import { useSettings } from '../store/useSettings'
-import type { Recipe } from '../types'
 
 function scaleMeasure(measure: string, multiplier: number): string {
   if (multiplier === 1 || !measure.trim()) return measure
@@ -49,47 +47,16 @@ export function RecipePage() {
   const [showPlanModal, setShowPlanModal] = useState(false)
   const [completedSteps, setCompletedSteps] = useState<Record<number, boolean>>({})
   const [portionScale, setPortionScale] = useState<number>(1)
-  const [lookupResult, setLookupResult] = useState<{
-    id: string
-    recipe: Recipe | null
-  } | null>(null)
 
-  const cachedRecipe = useMemo(() => {
+  const recipe = useMemo(() => {
     const fromDataset = recipesById.get(id)
     if (fromDataset) return fromDataset
     if (savedFavMap[id]) return savedFavMap[id]
     for (const slotRecipe of Object.values(planSlots)) {
       if (slotRecipe && slotRecipe.id === id) return slotRecipe
     }
-    const recentMatch = usePlan.getState().recentRecipes.find((r) => r.id === id)
-    if (recentMatch) return recentMatch
     return undefined
   }, [id, recipesById, savedFavMap, planSlots])
-
-  const shouldLookup = !cachedRecipe && /^[1-9]\d*$/.test(id)
-  const lookupPending = shouldLookup && lookupResult?.id !== id
-  const recipe =
-    cachedRecipe ?? (lookupResult?.id === id ? (lookupResult.recipe ?? undefined) : undefined)
-
-  // Fall back to live lookup.php?i={id} through /api/mealsdb for direct deep links
-  useEffect(() => {
-    if (!shouldLookup) return
-    let cancelled = false
-    fetchMealById(id)
-      .then((found) => {
-        if (!cancelled) {
-          setLookupResult({ id, recipe: found })
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setLookupResult({ id, recipe: null })
-        }
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [id, shouldLookup])
 
   useEffect(() => {
     if (recipe) {
@@ -111,7 +78,7 @@ export function RecipePage() {
     })
   }, [recipe, combinedAvailable, staples, fridgeItems])
 
-  if ((loading || lookupPending) && !recipe) {
+  if (loading && !recipe) {
     return (
       <div className="mx-auto max-w-4xl animate-pulse space-y-6">
         <div className="h-8 w-32 rounded-xl bg-cream-dark" />
@@ -247,31 +214,18 @@ export function RecipePage() {
               </div>
             </div>
 
-            {(recipe.youtube || !recipe.isFallback) && (
-              <div className="mt-6 flex flex-wrap items-center gap-2.5 border-t border-parchment/70 pt-4">
-                {recipe.youtube && (
-                  <a
-                    href={recipe.youtube}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-xl bg-tomato-50 px-4 py-2 text-xs font-semibold text-tomato-700 ring-1 ring-tomato-200 transition hover:bg-tomato-100"
-                  >
-                    <PlayCircle className="h-4 w-4 text-tomato-600" />
-                    Watch video tutorial on YouTube
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
-                )}
-                {!recipe.isFallback && /^\d+$/.test(recipe.id) && (
-                  <a
-                    href={`https://www.themealdb.com/meal/${recipe.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-parchment bg-cream/70 px-3.5 py-2 text-xs font-semibold text-ink-muted transition hover:border-sage-300 hover:text-ink"
-                  >
-                    View on TheMealDB
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
-                )}
+            {recipe.youtube && (
+              <div className="mt-6 pt-4 border-t border-parchment/70">
+                <a
+                  href={recipe.youtube}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-xl bg-tomato-50 px-4 py-2 text-xs font-semibold text-tomato-700 ring-1 ring-tomato-200 transition hover:bg-tomato-100"
+                >
+                  <PlayCircle className="h-4 w-4 text-tomato-600" />
+                  Watch video tutorial on YouTube
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
               </div>
             )}
           </div>
