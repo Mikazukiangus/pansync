@@ -1,5 +1,13 @@
 import { get, set } from 'idb-keyval'
 
+export interface OpenFoodFactsNutriments {
+  kcalPer100g: number | null
+  proteinPer100g: number | null
+  fatPer100g: number | null
+  carbsPer100g: number | null
+  sugarsPer100g: number | null
+}
+
 export interface OpenFoodFactsProduct {
   barcode: string
   name: string
@@ -7,6 +15,7 @@ export interface OpenFoodFactsProduct {
   quantity: string | null
   image: string | null
   nutriscoreGrade: 'a' | 'b' | 'c' | 'd' | 'e' | null
+  nutriments?: OpenFoodFactsNutriments | null
   allergens: string[]
   allergensKnown: boolean
   ingredientsText: string | null
@@ -126,7 +135,7 @@ export async function lookupProductsByBarcodes(
   }
 
   const res = await fetch(
-    `${OFF_PROXY_PATH}?codes=${encodeURIComponent(missing.slice(0, 20).join(','))}&page_size=${Math.min(10, missing.length)}`,
+    `${OFF_PROXY_PATH}?codes=${encodeURIComponent(missing.slice(0, 20).join(','))}&page_size=${Math.min(20, missing.length)}`,
   )
   if (!res.ok) {
     throw new Error(`OpenFoodFacts batch lookup failed with HTTP ${res.status}`)

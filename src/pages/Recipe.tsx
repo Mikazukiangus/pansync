@@ -18,6 +18,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AddToPlanModal } from '../components/AddToPlanModal'
 import { RecipeImage } from '../components/RecipeImage'
+import { RecipeNutritionBadges } from '../components/RecipeNutritionBadges'
 import { useRecipes } from '../hooks/useRecipes'
 import { formatSlotLabel } from '../lib/dates'
 import { evaluateRecipe, ingredientMatches, normalize } from '../lib/matching'
@@ -400,6 +401,8 @@ function RecipePageContent({ id }: { id: string }) {
                     : `Missing ${displayEvaluation.missingCount}`}
                 </span>
               </div>
+
+              <RecipeNutritionBadges recipe={recipe} />
             </div>
 
             {(recipe.youtube || !recipe.isFallback || matchedFridgeItems.length > 0) && (

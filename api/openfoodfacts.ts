@@ -12,6 +12,7 @@ export const DEFAULT_OFF_FIELDS = [
   'image_front_small_url',
   'image_front_url',
   'nutriscore_grade',
+  'nutriments',
   'allergens',
   'allergens_tags',
   'ingredients_text',
@@ -36,6 +37,14 @@ const ALLOWED_SEARCH_FILTERS = [
   'countries_tags',
 ] as const
 
+export interface OpenFoodFactsNutriments {
+  kcalPer100g: number | null
+  proteinPer100g: number | null
+  fatPer100g: number | null
+  carbsPer100g: number | null
+  sugarsPer100g: number | null
+}
+
 export interface OpenFoodFactsProduct {
   barcode: string
   name: string
@@ -43,11 +52,20 @@ export interface OpenFoodFactsProduct {
   quantity: string | null
   image: string | null
   nutriscoreGrade: 'a' | 'b' | 'c' | 'd' | 'e' | null
+  nutriments: OpenFoodFactsNutriments | null
   allergens: string[]
   allergensKnown: boolean
   ingredientsText: string | null
   categories: string[]
   attribution: string
+}
+
+interface RawOFFNutriments {
+  'energy-kcal_100g'?: number | string
+  proteins_100g?: number | string
+  fat_100g?: number | string
+  carbohydrates_100g?: number | string
+  sugars_100g?: number | string
 }
 
 interface RawOFFProduct {
@@ -59,6 +77,7 @@ interface RawOFFProduct {
   image_front_small_url?: string
   image_front_url?: string
   nutriscore_grade?: string
+  nutriments?: RawOFFNutriments
   allergens?: string
   allergens_tags?: string[]
   ingredients_text?: string
@@ -106,6 +125,33 @@ export function normalizeNutriscore(
   return null
 }
 
+function toFiniteNumber(val: number | string | undefined): number | null {
+  if (val === undefined || val === '') return null
+  const num = Number(val)
+  return Number.isFinite(num) && num >= 0 ? Math.round(num * 10) / 10 : null
+}
+
+function normalizeNutriments(
+  raw: RawOFFNutriments | undefined,
+): OpenFoodFactsNutriments | null {
+  if (!raw || typeof raw !== 'object') return null
+  const kcalPer100g = toFiniteNumber(raw['energy-kcal_100g'])
+  const proteinPer100g = toFiniteNumber(raw.proteins_100g)
+  const fatPer100g = toFiniteNumber(raw.fat_100g)
+  const carbsPer100g = toFiniteNumber(raw.carbohydrates_100g)
+  const sugarsPer100g = toFiniteNumber(raw.sugars_100g)
+  if (
+    kcalPer100g === null &&
+    proteinPer100g === null &&
+    fatPer100g === null &&
+    carbsPer100g === null &&
+    sugarsPer100g === null
+  ) {
+    return null
+  }
+  return { kcalPer100g, proteinPer100g, fatPer100g, carbsPer100g, sugarsPer100g }
+}
+
 /**
  * Normalize a raw OpenFoodFacts product record, safely handling missing
  * allergen lists, absent/unknown Nutri-Score grades, and partial fields.
@@ -148,6 +194,7 @@ export function normalizeOFFProduct(
     quantity: raw.quantity?.trim() || null,
     image: raw.image_front_small_url?.trim() || raw.image_front_url?.trim() || null,
     nutriscoreGrade: normalizeNutriscore(raw.nutriscore_grade),
+    nutriments: normalizeNutriments(raw.nutriments),
     allergens,
     allergensKnown,
     ingredientsText:
@@ -424,10 +471,11 @@ export async function GET(request: Request): Promise<Response> {
     )
   }
 
-  const rawPageSize = Number(params.get('page_size') ?? '5')
+  const maxPageSize = rawCodes ? 20 : 10
+  const rawPageSize = Number(params.get('page_size') ?? (rawCodes ? '20' : '5'))
   const pageSize =
     Number.isFinite(rawPageSize) && rawPageSize >= 1
-      ? Math.min(10, Math.floor(rawPageSize))
+      ? Math.min(maxPageSize, Math.floor(rawPageSize))
       : 5
 
   searchQuery.set('page_size', String(pageSize))

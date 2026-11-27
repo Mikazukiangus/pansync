@@ -93,9 +93,8 @@ describe('serverless /api/openfoodfacts handler', () => {
     expect(String(calledUrl)).toContain(
       'https://world.openfoodfacts.org/api/v2/product/3017624010701.json?fields=',
     )
-    expect((calledInit?.headers as Record<string, string>)['User-Agent']).toBe(
-      'PanSync/1.0 (pansync.vercel.app)',
-    )
+    const headers = calledInit?.headers as Record<string, string> | undefined
+    expect(headers?.['User-Agent']).toBe('PanSync/1.0 (pansync.vercel.app)')
 
     const firstJson = (await first.json()) as {
       ok: boolean

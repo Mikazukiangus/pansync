@@ -4,6 +4,7 @@ import { getRecipePriorities, MEAL_PRIORITIES } from '../lib/priorities'
 import { useFavourites } from '../store/useFavourites'
 import type { MatchedRecipe, Recipe } from '../types'
 import { RecipeImage } from './RecipeImage'
+import { RecipeNutritionBadges } from './RecipeNutritionBadges'
 
 interface RecipeCardProps {
   recipe: Recipe
@@ -69,23 +70,29 @@ export function RecipeCard({ recipe, match, onPlanClick }: RecipeCardProps) {
 
       {/* Body */}
       <div className="flex flex-1 flex-col p-4">
-        <div className="flex flex-wrap items-center gap-1.5 text-xs text-ink-muted">
-          <span>{recipe.area}</span>
-          <span aria-hidden="true">·</span>
-          <span>{recipe.category}</span>
-          {recipe.prepMinutes && (
-            <>
+        <div className="flex items-start justify-between gap-2.5">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-1.5 text-xs text-ink-muted">
+              <span>{recipe.area}</span>
               <span aria-hidden="true">·</span>
-              <span className="tabular-nums">~{recipe.prepMinutes} min</span>
-            </>
-          )}
-        </div>
+              <span>{recipe.category}</span>
+              {recipe.prepMinutes && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span className="tabular-nums">~{recipe.prepMinutes} min</span>
+                </>
+              )}
+            </div>
 
-        <Link to={`/recipe/${recipe.id}`} className="group/title mt-1">
-          <h3 className="font-display text-lg leading-snug font-semibold text-ink transition group-hover/title:text-sage-700">
-            {recipe.name}
-          </h3>
-        </Link>
+            <Link to={`/recipe/${recipe.id}`} className="group/title mt-1 block">
+              <h3 className="font-display text-lg leading-snug font-semibold text-ink transition group-hover/title:text-sage-700">
+                {recipe.name}
+              </h3>
+            </Link>
+          </div>
+
+          <RecipeNutritionBadges recipe={recipe} compact />
+        </div>
 
         {priorityTags.length > 0 && (
           <p className="mt-1.5 text-[11px] font-medium text-sage-700">

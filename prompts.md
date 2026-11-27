@@ -311,3 +311,11 @@ with the openfoodfacts api, can you suggest any additional information you can p
 ```
 
 *(Attached screenshot of the Find page with areas circled on the right side of each `RecipeCard` header next to the recipe title: Bread omelette, Tortang Talong, Peanut Butter Cookies.)*
+
+---
+
+## Prompt 19 — `2026-11-27 14:58:13 +08:00`
+
+```text
+option  1 and option3. Ensure the image is not too cramped. 
+```
