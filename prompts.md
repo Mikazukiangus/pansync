@@ -332,3 +332,22 @@ in the preference button:
 2. Move pantry staples segment to the fridge page as the top section
 ```
 
+---
+
+## Prompt 21 — `2026-11-27 15:06:11 +08:00`
+
+```text
+install the disqus embed below: import { DiscussionEmbed } from 'disqus-react';
+
+<DiscussionEmbed
+    shortname='pansync'
+    config={
+        {
+            url: this.props.article.url,
+            identifier: this.props.article.id,
+            title: this.props.article.title,
+            language: 'en' //e.g. for Traditional Chinese (Taiwan)
+        }
+    }
+/>
+```

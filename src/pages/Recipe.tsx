@@ -17,6 +17,7 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AddToPlanModal } from '../components/AddToPlanModal'
+import { RecipeComments } from '../components/RecipeComments'
 import { RecipeImage } from '../components/RecipeImage'
 import { RecipeNutritionBadges } from '../components/RecipeNutritionBadges'
 import { useRecipes } from '../hooks/useRecipes'
@@ -660,6 +661,8 @@ function RecipePageContent({ id }: { id: string }) {
           </ol>
         </section>
       </div>
+
+      <RecipeComments id={recipe.id} title={recipe.name} />
 
       <AddToPlanModal
         recipe={showPlanModal ? recipe : null}
