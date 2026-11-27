@@ -10,9 +10,11 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AddToPlanModal } from '../components/AddToPlanModal'
+import { ApiHealthStatus } from '../components/ApiHealthStatus'
 import { ExpiryBadge } from '../components/ExpiryBadge'
 import { IngredientInput } from '../components/IngredientInput'
 import { RecipeCard } from '../components/RecipeCard'
+import { RecipeComments } from '../components/RecipeComments'
 import { useRecipes } from '../hooks/useRecipes'
 import { formatSlotLabel, sortFridgeItemsByExpiry } from '../lib/dates'
 import { ingredientMatches, matchRecipes } from '../lib/matching'
@@ -621,6 +623,19 @@ export function Find() {
           )}
         </div>
       )}
+
+      <RecipeComments
+        id="pansync-home"
+        title="PanSync — Community Discussion"
+        url={
+          typeof window !== 'undefined'
+            ? `${window.location.origin}/`
+            : 'https://pansync.vercel.app/'
+        }
+        heading="Community Discussion"
+      />
+
+      <ApiHealthStatus />
 
       <AddToPlanModal
         recipe={planningRecipe}

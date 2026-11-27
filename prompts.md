@@ -359,3 +359,11 @@ install the disqus embed below: import { DiscussionEmbed } from 'disqus-react';
 ```text
 is this done?
 ```
+
+---
+
+## Prompt 23 — `2026-11-27 15:14:12 +08:00`
+
+```text
+i don't see the disqus embed on the main page though
+```
