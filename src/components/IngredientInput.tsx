@@ -1,5 +1,5 @@
 import { Plus, Search, X } from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { normalize } from '../lib/matching'
 
 interface IngredientInputProps {
@@ -9,6 +9,7 @@ interface IngredientInputProps {
   onRemove: (ingredient: string) => void
   onClear: () => void
   disabled?: boolean
+  externalInputRef?: React.RefObject<HTMLInputElement | null>
 }
 
 const POPULAR_LEFTOVERS = [
@@ -29,11 +30,20 @@ export function IngredientInput({
   onRemove,
   onClear,
   disabled = false,
+  externalInputRef,
 }: IngredientInputProps) {
   const [draft, setDraft] = useState('')
   const [focused, setFocused] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [duplicateNotice, setDuplicateNotice] = useState<string | null>(null)
+  const fallbackInputRef = useRef<HTMLInputElement>(null)
+  const inputRef = externalInputRef ?? fallbackInputRef
+
+  useEffect(() => {
+    if (!duplicateNotice) return
+    const timer = setTimeout(() => setDuplicateNotice(null), 2200)
+    return () => clearTimeout(timer)
+  }, [duplicateNotice])
 
   const existingNorms = useMemo(
     () => new Set(ingredients.map((i) => normalize(i))),
@@ -64,6 +74,19 @@ export function IngredientInput({
   const commitValue = (value: string) => {
     const cleaned = value.trim()
     if (!cleaned) return
+    const parts = cleaned
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+    const allAlreadyAdded =
+      parts.length > 0 && parts.every((part) => existingNorms.has(normalize(part)))
+    if (allAlreadyAdded) {
+      setDuplicateNotice(`"${parts.join(', ')}" is already in your list.`)
+      setDraft('')
+      setActiveIndex(0)
+      return
+    }
+    setDuplicateNotice(null)
     onAdd(cleaned)
     setDraft('')
     setActiveIndex(0)
@@ -106,8 +129,11 @@ export function IngredientInput({
     }
     if (e.key === 'Escape') {
       setFocused(false)
+      inputRef.current?.blur()
     }
   }
+
+  const listboxOpen = focused && !disabled && filteredSuggestions.length > 0
 
   return (
     <div className="relative">
@@ -135,7 +161,7 @@ export function IngredientInput({
                   onRemove(item)
                 }}
                 aria-label={`Remove ${item}`}
-                className="rounded-full p-0.5 text-sage-700 transition hover:bg-sage-200 hover:text-ink"
+                className="flex h-5 w-5 items-center justify-center rounded-full text-sage-700 transition hover:bg-sage-200 hover:text-ink"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -153,8 +179,15 @@ export function IngredientInput({
           onChange={(e) => {
             setDraft(e.target.value)
             setActiveIndex(0)
+            if (duplicateNotice) setDuplicateNotice(null)
           }}
           onKeyDown={handleKeyDown}
+          role="combobox"
+          aria-expanded={listboxOpen}
+          aria-controls={listboxOpen ? 'ingredient-suggestions-listbox' : undefined}
+          aria-activedescendant={
+            listboxOpen ? `ingredient-option-${activeIndex}` : undefined
+          }
           aria-label="What's in your fridge?"
           placeholder={
             disabled
@@ -166,11 +199,17 @@ export function IngredientInput({
           className="min-w-48 flex-1 bg-transparent py-1 text-sm text-ink placeholder:text-ink-subtle focus:outline-none disabled:cursor-not-allowed"
         />
 
+        {!draft.trim() && !disabled && ingredients.length === 0 && (
+          <kbd className="hidden rounded-md border border-parchment bg-cream px-1.5 py-0.5 font-mono text-[11px] font-semibold text-ink-subtle sm:inline-block">
+            /
+          </kbd>
+        )}
+
         {draft.trim() && !disabled && (
           <button
             type="button"
             onClick={() => commitValue(draft)}
-            className="inline-flex items-center gap-1 rounded-xl bg-sage-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-sage-700"
+            className="inline-flex min-h-8 items-center gap-1 rounded-xl bg-sage-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-sage-700"
           >
             <Plus className="h-3.5 w-3.5" />
             Add
@@ -184,22 +223,34 @@ export function IngredientInput({
               e.stopPropagation()
               onClear()
             }}
-            className="text-xs font-medium text-ink-muted hover:text-tomato-600"
+            className="rounded-lg px-2 py-1 text-xs font-medium text-ink-muted transition hover:bg-tomato-50 hover:text-tomato-600"
           >
             Clear all
           </button>
         )}
       </div>
 
+      {duplicateNotice && (
+        <p role="status" className="mt-1.5 text-xs font-medium text-honey-700">
+          {duplicateNotice}
+        </p>
+      )}
+
       {/* Autocomplete dropdown */}
-      {focused && !disabled && filteredSuggestions.length > 0 && (
+      {listboxOpen && (
         <ul
+          id="ingredient-suggestions-listbox"
           role="listbox"
           aria-label="Ingredient suggestions"
           className="absolute z-20 mt-2 max-h-64 w-full overflow-auto rounded-2xl border border-parchment bg-white p-1.5 shadow-xl"
         >
           {filteredSuggestions.map((suggestion, idx) => (
-            <li key={suggestion} role="option" aria-selected={idx === activeIndex}>
+            <li
+              key={suggestion}
+              id={`ingredient-option-${idx}`}
+              role="option"
+              aria-selected={idx === activeIndex}
+            >
               <button
                 type="button"
                 onMouseDown={(e) => {
@@ -213,7 +264,7 @@ export function IngredientInput({
                 }`}
               >
                 <span>{suggestion}</span>
-                <span className="text-xs text-ink-subtle">Press click to add</span>
+                <span className="text-xs text-ink-subtle">Enter or click</span>
               </button>
             </li>
           ))}
@@ -229,7 +280,7 @@ export function IngredientInput({
               key={chip}
               type="button"
               onClick={() => onAdd(chip)}
-              className="rounded-full border border-parchment bg-white/80 px-2.5 py-1 text-xs font-medium text-ink-muted transition hover:border-sage-400 hover:bg-sage-50 hover:text-sage-800"
+              className="min-h-8 rounded-full border border-parchment bg-white/80 px-3 py-1 text-xs font-medium text-ink-muted transition hover:border-sage-400 hover:bg-sage-50 hover:text-sage-800"
             >
               + {chip}
             </button>

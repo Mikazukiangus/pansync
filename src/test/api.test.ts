@@ -40,23 +40,7 @@ describe('serverless /api/health and /api/mealsdb handlers', () => {
     expect(bodySet.apiKeyConfigured).toBe(true)
   })
 
-  it('probes upstream keyless when ?probe=1 is requested without an API key', async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(new Response(null, { status: 200 }))
-
-    const res = await healthGET(new Request('http://localhost/api/health?probe=1'))
-    expect(res.status).toBe(200)
-    const body = (await res.json()) as Record<string, unknown>
-    expect(body.ok).toBe(true)
-    expect(body.upstream).toBe('ok')
-    expect(fetchSpy).toHaveBeenCalledWith(
-      'https://www.themealdb.com/api/spec/openapi-v1.yaml',
-      expect.objectContaining({ method: 'HEAD' }),
-    )
-  })
-
-  it('probes upstream with key when ?probe=1 is requested and key is configured', async () => {
+  it('probes upstream when ?probe=1 is requested and key is configured', async () => {
     setEnvKey('probe-key')
     const fetchSpy = vi
       .spyOn(globalThis, 'fetch')

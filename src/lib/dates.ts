@@ -84,6 +84,19 @@ export function formatExpiryLabel(useBy: string, today: Date = new Date()): stri
 }
 
 /**
+ * Format YYYY-MM-DD into a friendly local label like "Sat, Dec 5".
+ */
+export function formatReadableDate(ymd: string): string {
+  const parsed = parseLocalDate(ymd)
+  if (!parsed) return ymd
+  return new Intl.DateTimeFormat(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  }).format(parsed)
+}
+
+/**
  * Monotonically decreasing score bonus for items expiring sooner in fridge mode.
  * Earlier expiry dates strictly produce higher bonuses.
  */

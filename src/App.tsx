@@ -20,6 +20,18 @@ export function AppRoutes() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+      <footer className="mx-auto max-w-6xl px-4 pt-4 pb-6 text-center text-xs text-ink-subtle sm:px-6">
+        Recipe data and imagery:{' '}
+        <a
+          href="https://www.themealdb.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-medium text-ink-muted underline hover:text-sage-700"
+        >
+          TheMealDB
+        </a>
+        . Always verify ingredient labels and allergen risks before cooking.
+      </footer>
     </div>
   )
 }

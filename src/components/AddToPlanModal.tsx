@@ -1,5 +1,5 @@
 import { CalendarPlus, Check, ChevronLeft, ChevronRight, X } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   formatLocalDate,
   formatShortDayDate,
@@ -11,24 +11,34 @@ import {
   parseLocalDate,
 } from '../lib/dates'
 import { usePlan } from '../store/usePlan'
-import { MEAL_SLOTS, type MealSlotType, type Recipe } from '../types'
+import { MEAL_SLOTS, type MealSlotType, type PlanSlotKey, type Recipe } from '../types'
 
 interface AddToPlanModalProps {
   recipe: Recipe | null
   onClose: () => void
+  onAdded?: (slotKey: PlanSlotKey, recipe: Recipe) => void
 }
 
-export function AddToPlanModal({ recipe, onClose }: AddToPlanModalProps) {
+export function AddToPlanModal({ recipe, onClose, onAdded }: AddToPlanModalProps) {
   if (!recipe) return null
-  return <AddToPlanModalContent key={recipe.id} recipe={recipe} onClose={onClose} />
+  return (
+    <AddToPlanModalContent
+      key={recipe.id}
+      recipe={recipe}
+      onClose={onClose}
+      onAdded={onAdded}
+    />
+  )
 }
 
 function AddToPlanModalContent({
   recipe,
   onClose,
+  onAdded,
 }: {
   recipe: Recipe
   onClose: () => void
+  onAdded?: (slotKey: PlanSlotKey, recipe: Recipe) => void
 }) {
   const slots = usePlan((s) => s.slots)
   const setSlot = usePlan((s) => s.setSlot)
@@ -38,6 +48,26 @@ function AddToPlanModalContent({
   const [selectedDate, setSelectedDate] = useState<string>(todayStr)
   const [selectedMeal, setSelectedMeal] = useState<MealSlotType>('Dinner')
   const [justAdded, setJustAdded] = useState(false)
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
+
+  useEffect(() => {
+    if (!justAdded) return
+    const timer = setTimeout(() => {
+      setJustAdded(false)
+      onClose()
+    }, 550)
+    return () => clearTimeout(timer)
+  }, [justAdded, onClose])
 
   const weekDates = useMemo(() => getWeekDates(weekStart), [weekStart])
   const selectedDateObj = useMemo(
@@ -62,11 +92,8 @@ function AddToPlanModalContent({
 
   const handleConfirm = () => {
     setSlot(targetKey, recipe)
+    onAdded?.(targetKey, recipe)
     setJustAdded(true)
-    setTimeout(() => {
-      setJustAdded(false)
-      onClose()
-    }, 550)
   }
 
   return (
@@ -99,7 +126,7 @@ function AddToPlanModalContent({
             type="button"
             onClick={onClose}
             aria-label="Close meal picker"
-            className="rounded-full p-1.5 text-ink-muted hover:bg-cream-dark hover:text-ink"
+            className="flex min-h-10 min-w-10 items-center justify-center rounded-full p-1.5 text-ink-muted hover:bg-cream-dark hover:text-ink"
           >
             <X className="h-5 w-5" />
           </button>
@@ -115,22 +142,23 @@ function AddToPlanModalContent({
                 type="button"
                 aria-label="Previous week"
                 onClick={() => shiftWeek(-1)}
-                className="rounded-full p-0.5 text-ink-muted hover:bg-cream hover:text-ink"
+                className="flex h-7 w-7 items-center justify-center rounded-full text-ink-muted hover:bg-cream hover:text-ink"
               >
                 <ChevronLeft className="h-3.5 w-3.5" />
               </button>
-              <span className="px-1 font-semibold text-ink">{formatWeekRange(weekStart)}</span>
+              <span className="px-1 font-semibold text-ink tabular-nums">
+                {formatWeekRange(weekStart)}
+              </span>
               <button
                 type="button"
                 aria-label="Next week"
                 onClick={() => shiftWeek(1)}
-                className="rounded-full p-0.5 text-ink-muted hover:bg-cream hover:text-ink"
+                className="flex h-7 w-7 items-center justify-center rounded-full text-ink-muted hover:bg-cream hover:text-ink"
               >
                 <ChevronRight className="h-3.5 w-3.5" />
               </button>
             </div>
           </div>
-
           <div className="mt-2 grid grid-cols-7 gap-1.5">
             {weekDates.map((dateObj) => {
               const ymd = formatLocalDate(dateObj)
@@ -145,7 +173,7 @@ function AddToPlanModalContent({
                   type="button"
                   aria-label={`${getWeekdayShort(dateObj)}, ${formatShortDayDate(dateObj)}`}
                   onClick={() => setSelectedDate(ymd)}
-                  className={`flex flex-col items-center rounded-xl py-2 text-xs font-semibold transition ${
+                  className={`flex min-h-12 flex-col items-center justify-center rounded-xl py-2 text-xs font-semibold tabular-nums transition ${
                     active
                       ? 'bg-sage-600 text-white shadow-xs'
                       : isToday
@@ -174,7 +202,7 @@ function AddToPlanModalContent({
 
         <div className="mt-4">
           <label className="text-xs font-semibold tracking-wide text-ink-muted uppercase">
-            Meal Slot
+            Meal Slot · {selectedDayLabel}
           </label>
           <div className="mt-2 grid grid-cols-3 gap-2">
             {MEAL_SLOTS.map((meal) => {
@@ -185,7 +213,7 @@ function AddToPlanModalContent({
                   key={meal}
                   type="button"
                   onClick={() => setSelectedMeal(meal)}
-                  className={`flex flex-col items-start rounded-2xl border p-3 text-left transition ${
+                  className={`flex min-h-16 flex-col items-start rounded-2xl border p-3 text-left transition ${
                     active
                       ? 'border-sage-600 bg-sage-50 ring-2 ring-sage-600/20'
                       : 'border-parchment bg-white hover:border-sage-300'
@@ -214,14 +242,14 @@ function AddToPlanModalContent({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl px-4 py-2.5 text-sm font-medium text-ink-muted hover:bg-cream-dark hover:text-ink"
+            className="min-h-10 rounded-xl px-4 py-2 text-sm font-medium text-ink-muted hover:bg-cream-dark hover:text-ink"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={handleConfirm}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-sage-600 px-5 py-2.5 text-sm font-semibold text-white shadow-xs transition hover:bg-sage-700"
+            className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-sage-600 px-5 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-sage-700"
           >
             {justAdded ? (
               <>

@@ -1,5 +1,6 @@
 import { RotateCcw, ShieldAlert, SlidersHorizontal, Sparkles, X } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { normalize } from '../lib/matching'
 import { useSettings } from '../store/useSettings'
 
 interface SettingsModalProps {
@@ -20,20 +21,62 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
 
   const [newStaple, setNewStaple] = useState('')
   const [newExcluded, setNewExcluded] = useState('')
+  const [stapleFeedback, setStapleFeedback] = useState<string | null>(null)
+  const [excludedFeedback, setExcludedFeedback] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [open, onClose])
 
   if (!open) return null
 
   const handleAddStaple = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newStaple.trim()) return
-    addStaple(newStaple)
+    const cleaned = newStaple.trim()
+    if (!cleaned) {
+      setStapleFeedback('Enter an ingredient name first.')
+      return
+    }
+    const norm = normalize(cleaned)
+    if (staples.some((s) => normalize(s) === norm)) {
+      setStapleFeedback(`"${cleaned}" is already in your pantry staples.`)
+      return
+    }
+    if (excludedIngredients.some((ex) => normalize(ex) === norm)) {
+      setStapleFeedback(`Added "${cleaned}". Note: it is also in your Excluded list.`)
+    } else {
+      setStapleFeedback(null)
+    }
+    addStaple(cleaned)
     setNewStaple('')
   }
 
   const handleAddExcluded = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newExcluded.trim()) return
-    addExcluded(newExcluded)
+    const cleaned = newExcluded.trim()
+    if (!cleaned) {
+      setExcludedFeedback('Enter an ingredient or allergen to exclude.')
+      return
+    }
+    const norm = normalize(cleaned)
+    if (excludedIngredients.some((ex) => normalize(ex) === norm)) {
+      setExcludedFeedback(`"${cleaned}" is already excluded.`)
+      return
+    }
+    if (staples.some((s) => normalize(s) === norm)) {
+      setExcludedFeedback(`Excluded "${cleaned}". Note: it is also listed as a Pantry Staple.`)
+    } else {
+      setExcludedFeedback(null)
+    }
+    addExcluded(cleaned)
     setNewExcluded('')
   }
 
@@ -46,7 +89,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg rounded-3xl border border-parchment bg-cream p-6 shadow-2xl"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-parchment bg-cream p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4">
@@ -56,7 +99,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
             </div>
             <div>
               <h2 id="settings-modal-title" className="font-display text-xl font-semibold text-ink">
-                Pantry & Dietary Preferences
+                Pantry &amp; Dietary Preferences
               </h2>
               <p className="text-xs text-ink-muted">
                 Saved automatically in your browser
@@ -67,7 +110,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
             type="button"
             onClick={onClose}
             aria-label="Close settings"
-            className="rounded-full p-2 text-ink-muted transition hover:bg-cream-dark hover:text-ink"
+            className="flex min-h-10 min-w-10 items-center justify-center rounded-full p-2 text-ink-muted transition hover:bg-cream-dark hover:text-ink"
           >
             <X className="h-5 w-5" />
           </button>
@@ -79,13 +122,16 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-sage-600" />
               <h3 className="font-sans text-sm font-semibold text-ink">
-                Pantry Staples
+                Pantry Staples ({staples.length})
               </h3>
             </div>
             <button
               type="button"
-              onClick={resetStaples}
-              className="inline-flex items-center gap-1 text-xs font-medium text-sage-700 hover:text-sage-800"
+              onClick={() => {
+                resetStaples()
+                setStapleFeedback('Staples reset to defaults.')
+              }}
+              className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-sage-700 transition hover:bg-sage-50 hover:text-sage-800"
             >
               <RotateCcw className="h-3.5 w-3.5" />
               Reset defaults
@@ -106,7 +152,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   type="button"
                   onClick={() => removeStaple(staple)}
                   aria-label={`Remove staple ${staple}`}
-                  className="rounded-full p-0.5 text-sage-600 hover:bg-sage-200 hover:text-sage-900"
+                  className="flex h-4 w-4 items-center justify-center rounded-full text-sage-600 hover:bg-sage-200 hover:text-sage-900"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -118,26 +164,51 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
             <input
               type="text"
               value={newStaple}
-              onChange={(e) => setNewStaple(e.target.value)}
+              onChange={(e) => {
+                setNewStaple(e.target.value)
+                if (stapleFeedback) setStapleFeedback(null)
+              }}
+              aria-label="Add pantry staple"
               placeholder="Add staple (e.g. butter, soy sauce, flour)..."
               className="flex-1 rounded-xl border border-parchment bg-cream/60 px-3 py-2 text-sm text-ink placeholder:text-ink-subtle focus:border-sage-500 focus:bg-white focus:outline-none"
             />
             <button
               type="submit"
-              className="rounded-xl bg-sage-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-sage-700"
+              className="min-h-10 rounded-xl bg-sage-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-sage-700"
             >
               Add
             </button>
           </form>
+          {stapleFeedback && (
+            <p role="status" className="mt-2 text-xs font-medium text-honey-700">
+              {stapleFeedback}
+            </p>
+          )}
         </div>
 
         {/* Excluded ingredients / allergens section */}
         <div className="mt-4 rounded-2xl border border-parchment bg-white p-4">
-          <div className="flex items-center gap-2">
-            <ShieldAlert className="h-4 w-4 text-tomato-600" />
-            <h3 className="font-sans text-sm font-semibold text-ink">
-              Allergens & Disliked Ingredients
-            </h3>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="h-4 w-4 text-tomato-600" />
+              <h3 className="font-sans text-sm font-semibold text-ink">
+                Allergens &amp; Disliked Ingredients ({excludedIngredients.length})
+              </h3>
+            </div>
+            {excludedIngredients.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  for (const item of excludedIngredients) {
+                    removeExcluded(item)
+                  }
+                  setExcludedFeedback(null)
+                }}
+                className="rounded-lg px-2 py-1 text-xs font-medium text-ink-muted transition hover:bg-tomato-50 hover:text-tomato-700"
+              >
+                Clear all
+              </button>
+            )}
           </div>
           <p className="mt-1 text-xs text-ink-muted">
             Hide recipes containing any of these ingredients when searching.
@@ -155,7 +226,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                     type="button"
                     onClick={() => removeExcluded(item)}
                     aria-label={`Remove exclusion ${item}`}
-                    className="rounded-full p-0.5 text-tomato-600 hover:bg-tomato-200"
+                    className="flex h-4 w-4 items-center justify-center rounded-full text-tomato-600 hover:bg-tomato-200"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -168,24 +239,33 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
             <input
               type="text"
               value={newExcluded}
-              onChange={(e) => setNewExcluded(e.target.value)}
+              onChange={(e) => {
+                setNewExcluded(e.target.value)
+                if (excludedFeedback) setExcludedFeedback(null)
+              }}
+              aria-label="Exclude ingredient"
               placeholder="Exclude ingredient (e.g. peanuts, shrimp, cilantro)..."
               className="flex-1 rounded-xl border border-parchment bg-cream/60 px-3 py-2 text-sm text-ink placeholder:text-ink-subtle focus:border-tomato-500 focus:bg-white focus:outline-none"
             />
             <button
               type="submit"
-              className="rounded-xl bg-ink px-4 py-2 text-xs font-semibold text-white transition hover:bg-ink/85"
+              className="min-h-10 rounded-xl bg-ink px-4 py-2 text-xs font-semibold text-white transition hover:bg-ink/85"
             >
               Exclude
             </button>
           </form>
+          {excludedFeedback && (
+            <p role="status" className="mt-2 text-xs font-medium text-honey-700">
+              {excludedFeedback}
+            </p>
+          )}
         </div>
 
         <div className="mt-5 flex justify-end">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl bg-sage-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-sage-700"
+            className="min-h-10 rounded-xl bg-sage-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-sage-700"
           >
             Done
           </button>

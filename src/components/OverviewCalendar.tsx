@@ -12,7 +12,7 @@ import type { PlanSlotKey, Recipe } from '../types'
 
 interface OverviewCalendarProps {
   year: number
-  month: number
+  month: number // 0-based
   todayYmd: string
   selectedDateYmd: string
   expandedWeekYmds: readonly string[]
@@ -80,7 +80,7 @@ export function OverviewCalendar({
             <h2 className="font-display text-base font-semibold text-ink">
               {formatMonthYear(year, month)}
             </h2>
-            <p className="text-[11px] text-ink-muted">
+            <p className="text-[11px] text-ink-muted tabular-nums">
               {plannedDaysInMonth === 0
                 ? 'No days planned this month'
                 : `${plannedDaysInMonth} planned ${plannedDaysInMonth === 1 ? 'day' : 'days'} this month`}
@@ -93,7 +93,7 @@ export function OverviewCalendar({
             <button
               type="button"
               onClick={onToday}
-              className="rounded-full border border-parchment bg-cream px-2.5 py-1 text-[11px] font-semibold text-ink transition hover:border-sage-400 hover:bg-sage-50"
+              className="min-h-8 rounded-full border border-parchment bg-cream px-2.5 py-1 text-[11px] font-semibold text-ink transition hover:border-sage-400 hover:bg-sage-50"
             >
               Today
             </button>
@@ -102,7 +102,7 @@ export function OverviewCalendar({
             type="button"
             onClick={onPrevMonth}
             aria-label="Previous month"
-            className="rounded-full p-1.5 text-ink-muted transition hover:bg-cream hover:text-ink"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-ink-muted transition hover:bg-cream hover:text-ink"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -110,7 +110,7 @@ export function OverviewCalendar({
             type="button"
             onClick={onNextMonth}
             aria-label="Next month"
-            className="rounded-full p-1.5 text-ink-muted transition hover:bg-cream hover:text-ink"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-ink-muted transition hover:bg-cream hover:text-ink"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
@@ -176,7 +176,7 @@ export function OverviewCalendar({
                   ? `${ymd}: ${mealSummary}`
                   : `${ymd} — click to open this week`
               }
-              className={`relative flex flex-col items-center justify-center py-1.5 text-xs transition ${weekEdgeClass} ${
+              className={`relative flex flex-col items-center justify-center py-1.5 text-xs tabular-nums transition ${weekEdgeClass} ${
                 isInExpandedWeek
                   ? 'bg-sage-100/85 text-ink hover:bg-sage-200/70'
                   : plannedCount > 0
@@ -197,7 +197,6 @@ export function OverviewCalendar({
               >
                 {date.getDate()}
               </span>
-
               <span className="mt-0.5 flex h-1.5 items-center gap-0.5">
                 {breakfast && (
                   <span

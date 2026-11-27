@@ -4,22 +4,28 @@ import {
   Pencil,
   Plus,
   Refrigerator,
+  RotateCcw,
   Sparkles,
   Trash2,
   X,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ExpiryBadge } from '../components/ExpiryBadge'
 import { useRecipes } from '../hooks/useRecipes'
 import {
   addDaysToDate,
+  daysUntil,
+  formatReadableDate,
   getExpiryStatus,
   sortFridgeItemsByExpiry,
 } from '../lib/dates'
+import { normalize } from '../lib/matching'
 import { useFridge } from '../store/useFridge'
 import { useSearch } from '../store/useSearch'
 import type { FridgeItem } from '../types'
+
+type FridgeFilter = 'all' | 'urgent' | 'fresh'
 
 export function Fridge() {
   const navigate = useNavigate()
@@ -29,6 +35,9 @@ export function Fridge() {
   const updateItem = useFridge((s) => s.updateItem)
   const removeItem = useFridge((s) => s.removeItem)
   const markUsed = useFridge((s) => s.markUsed)
+  const restoreItem = useFridge((s) => s.restoreItem)
+  const restoreItems = useFridge((s) => s.restoreItems)
+  const clearFridge = useFridge((s) => s.clearFridge)
   const loadSampleFridge = useFridge((s) => s.loadSampleFridge)
 
   const setFridgeMode = useSearch((s) => s.setFridgeMode)
@@ -41,9 +50,30 @@ export function Fridge() {
   const [editName, setEditName] = useState('')
   const [editQuantity, setEditQuantity] = useState('')
   const [editUseBy, setEditUseBy] = useState('')
-  const [usedNotice, setUsedNotice] = useState<string | null>(null)
+  const [filter, setFilter] = useState<FridgeFilter>('all')
+  const [undoToast, setUndoToast] = useState<{
+    message: string
+    items: FridgeItem[]
+  } | null>(null)
+
+  useEffect(() => {
+    if (!undoToast) return
+    const timer = setTimeout(() => setUndoToast(null), 5000)
+    return () => clearTimeout(timer)
+  }, [undoToast])
 
   const sortedItems = useMemo(() => sortFridgeItemsByExpiry(items), [items])
+
+  const filteredItems = useMemo(() => {
+    if (filter === 'all') return sortedItems
+    return sortedItems.filter((item) => {
+      const status = getExpiryStatus(item.useBy)
+      if (filter === 'urgent') {
+        return status === 'expired' || status === 'today' || status === 'soon'
+      }
+      return status === 'fine' || status === 'none'
+    })
+  }, [sortedItems, filter])
 
   const counts = useMemo(() => {
     let expiredOrToday = 0
@@ -57,6 +87,19 @@ export function Fridge() {
     }
     return { expiredOrToday, soon, fine }
   }, [items])
+
+  // Error prevention hints while typing
+  const duplicateMatch = useMemo(() => {
+    const norm = normalize(name)
+    if (!norm) return null
+    return items.find((item) => normalize(item.name) === norm) ?? null
+  }, [name, items])
+
+  const isPastDate = useMemo(() => {
+    if (!useBy) return false
+    const diff = daysUntil(useBy)
+    return diff !== null && diff < 0
+  }, [useBy])
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault()
@@ -84,10 +127,50 @@ export function Fridge() {
     setEditingId(null)
   }
 
+  const handleEditKeyDown = (e: React.KeyboardEvent, id: string) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      saveEdit(id)
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      setEditingId(null)
+    }
+  }
+
   const handleMarkUsed = (item: FridgeItem) => {
     markUsed(item.id)
-    setUsedNotice(`Nice! Marked "${item.name}" as cooked & used up.`)
-    setTimeout(() => setUsedNotice(null), 2800)
+    setUndoToast({
+      message: `Marked "${item.name}" as cooked & used up.`,
+      items: [item],
+    })
+  }
+
+  const handleDeleteItem = (item: FridgeItem) => {
+    removeItem(item.id)
+    setUndoToast({
+      message: `Removed "${item.name}" from your fridge.`,
+      items: [item],
+    })
+  }
+
+  const handleClearAll = () => {
+    if (items.length === 0) return
+    const snapshot = [...items]
+    clearFridge()
+    setUndoToast({
+      message: `Cleared ${snapshot.length} fridge item${snapshot.length === 1 ? '' : 's'}.`,
+      items: snapshot,
+    })
+  }
+
+  const handleUndo = () => {
+    if (!undoToast) return
+    if (undoToast.items.length === 1) {
+      restoreItem(undoToast.items[0])
+    } else {
+      restoreItems(undoToast.items)
+    }
+    setUndoToast(null)
   }
 
   const handleCookExpiring = () => {
@@ -108,35 +191,45 @@ export function Fridge() {
         </div>
 
         {items.length > 0 && (
-          <button
-            type="button"
-            onClick={handleCookExpiring}
-            className="inline-flex items-center gap-2 rounded-2xl bg-tomato-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-tomato-700"
-          >
-            <Flame className="h-4 w-4" />
-            Cook with what&rsquo;s expiring
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleClearAll}
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-2xl border border-parchment bg-white px-4 py-2.5 text-xs font-semibold text-ink-muted transition hover:border-tomato-200 hover:bg-tomato-50 hover:text-tomato-700"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Clear all
+            </button>
+            <button
+              type="button"
+              onClick={handleCookExpiring}
+              className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-tomato-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-tomato-700"
+            >
+              <Flame className="h-4 w-4" />
+              Cook with what&rsquo;s expiring
+            </button>
+          </div>
         )}
       </div>
 
-      {/* Status summary pills */}
+      {/* Status summary cards */}
       {items.length > 0 && (
         <div className="grid grid-cols-3 gap-3 sm:max-w-xl">
           <div className="rounded-2xl border border-tomato-200 bg-tomato-50/70 p-3.5">
             <span className="text-xs font-semibold text-tomato-700">Expired / Today</span>
-            <p className="mt-1 font-display text-2xl font-bold text-tomato-700">
+            <p className="mt-1 font-display text-2xl font-bold text-tomato-700 tabular-nums">
               {counts.expiredOrToday}
             </p>
           </div>
           <div className="rounded-2xl border border-honey-500/30 bg-honey-50 p-3.5">
             <span className="text-xs font-semibold text-honey-700">≤ 3 days</span>
-            <p className="mt-1 font-display text-2xl font-bold text-honey-700">
+            <p className="mt-1 font-display text-2xl font-bold text-honey-700 tabular-nums">
               {counts.soon}
             </p>
           </div>
           <div className="rounded-2xl border border-sage-200 bg-sage-50 p-3.5">
             <span className="text-xs font-semibold text-sage-800">Fresh</span>
-            <p className="mt-1 font-display text-2xl font-bold text-sage-800">
+            <p className="mt-1 font-display text-2xl font-bold text-sage-800 tabular-nums">
               {counts.fine}
             </p>
           </div>
@@ -207,6 +300,22 @@ export function Fridge() {
           </div>
         </form>
 
+        {/* Error-prevention hints */}
+        {(duplicateMatch || isPastDate) && (
+          <div className="mt-2.5 space-y-1 text-xs font-medium text-honey-700">
+            {duplicateMatch && (
+              <p>
+                Heads up: <strong>{duplicateMatch.name}</strong> ({duplicateMatch.quantity}) is already in your fridge — adding will create a separate entry.
+              </p>
+            )}
+            {isPastDate && (
+              <p>
+                Heads up: {formatReadableDate(useBy)} is in the past. Double-check the date if this is fresh produce.
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Quick date shortcuts */}
         <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs">
           <span className="text-ink-muted">Quick use-by:</span>
@@ -216,27 +325,78 @@ export function Fridge() {
             { label: 'In 3 days', offset: 3 },
             { label: 'In 1 week', offset: 7 },
             { label: 'No date', offset: null },
-          ].map((preset) => (
-            <button
-              key={preset.label}
-              type="button"
-              onClick={() =>
-                setUseBy(preset.offset === null ? '' : addDaysToDate(preset.offset))
-              }
-              className="rounded-full border border-parchment bg-cream/70 px-2.5 py-1 font-medium text-ink-muted transition hover:border-sage-400 hover:text-ink"
-            >
-              {preset.label}
-            </button>
-          ))}
+          ].map((preset) => {
+            const targetVal = preset.offset === null ? '' : addDaysToDate(preset.offset)
+            const active = useBy === targetVal
+            return (
+              <button
+                key={preset.label}
+                type="button"
+                onClick={() => setUseBy(targetVal)}
+                className={`min-h-8 rounded-full border px-3 py-1 font-medium transition ${
+                  active
+                    ? 'border-sage-500 bg-sage-50 text-sage-800'
+                    : 'border-parchment bg-cream/70 text-ink-muted hover:border-sage-400 hover:text-ink'
+                }`}
+              >
+                {preset.label}
+              </button>
+            )
+          })}
         </div>
       </section>
 
-      {usedNotice && (
+      {undoToast && (
         <div
           role="status"
-          className="rounded-2xl border border-sage-200 bg-sage-50 px-4 py-3 text-sm font-medium text-sage-800"
+          aria-live="polite"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-sage-200 bg-sage-50 px-4 py-3 text-sm font-medium text-sage-800"
         >
-          {usedNotice}
+          <span>{undoToast.message}</span>
+          <button
+            type="button"
+            onClick={handleUndo}
+            className="inline-flex min-h-8 items-center gap-1 rounded-lg bg-white px-3 py-1 text-xs font-semibold text-sage-800 ring-1 ring-sage-200 transition hover:bg-sage-100"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            Undo
+          </button>
+        </div>
+      )}
+
+      {/* Filter tabs when fridge has several items */}
+      {items.length > 4 && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div
+            role="group"
+            aria-label="Filter fridge items by freshness"
+            className="inline-flex items-center gap-1 rounded-xl bg-cream-dark/70 p-1"
+          >
+            {(
+              [
+                { key: 'all', label: `All (${items.length})` },
+                {
+                  key: 'urgent',
+                  label: `Expiring soon (${counts.expiredOrToday + counts.soon})`,
+                },
+                { key: 'fresh', label: `Fresh (${counts.fine})` },
+              ] as const
+            ).map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                aria-pressed={filter === tab.key}
+                onClick={() => setFilter(tab.key)}
+                className={`min-h-8 rounded-lg px-3 py-1 text-xs font-semibold tabular-nums transition ${
+                  filter === tab.key
+                    ? 'bg-white text-ink shadow-2xs'
+                    : 'text-ink-muted hover:text-ink'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -255,16 +415,29 @@ export function Fridge() {
           <button
             type="button"
             onClick={() => loadSampleFridge()}
-            className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-sage-600 px-5 py-3 text-sm font-semibold text-white shadow-xs transition hover:bg-sage-700"
+            className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-2xl bg-sage-600 px-5 py-3 text-sm font-semibold text-white shadow-xs transition hover:bg-sage-700"
           >
             <Sparkles className="h-4 w-4" />
             Load sample fridge
           </button>
         </section>
+      ) : filteredItems.length === 0 ? (
+        <section className="rounded-3xl border border-parchment bg-white px-6 py-10 text-center">
+          <p className="text-sm font-medium text-ink-muted">
+            No items match that freshness filter right now.
+          </p>
+          <button
+            type="button"
+            onClick={() => setFilter('all')}
+            className="mt-3 min-h-9 rounded-xl bg-sage-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-sage-700"
+          >
+            Show all items
+          </button>
+        </section>
       ) : (
         <div className="overflow-hidden rounded-3xl border border-parchment bg-white shadow-xs">
           <ul className="divide-y divide-parchment/70">
-            {sortedItems.map((item) => {
+            {filteredItems.map((item) => {
               const isEditing = editingId === item.id
 
               if (isEditing) {
@@ -276,6 +449,7 @@ export function Fridge() {
                         aria-label="Edit ingredient name"
                         value={editName}
                         onChange={(e) => setEditName(e.target.value)}
+                        onKeyDown={(e) => handleEditKeyDown(e, item.id)}
                         className="rounded-xl border border-parchment bg-white px-3 py-2 text-sm sm:col-span-4"
                       />
                       <input
@@ -283,6 +457,7 @@ export function Fridge() {
                         aria-label="Edit quantity"
                         value={editQuantity}
                         onChange={(e) => setEditQuantity(e.target.value)}
+                        onKeyDown={(e) => handleEditKeyDown(e, item.id)}
                         className="rounded-xl border border-parchment bg-white px-3 py-2 text-sm sm:col-span-3"
                       />
                       <input
@@ -290,6 +465,7 @@ export function Fridge() {
                         aria-label="Edit use-by date"
                         value={editUseBy}
                         onChange={(e) => setEditUseBy(e.target.value)}
+                        onKeyDown={(e) => handleEditKeyDown(e, item.id)}
                         className="rounded-xl border border-parchment bg-white px-3 py-2 text-sm sm:col-span-3"
                       />
                       <div className="flex items-center justify-end gap-2 sm:col-span-2">
@@ -297,7 +473,7 @@ export function Fridge() {
                           type="button"
                           onClick={() => saveEdit(item.id)}
                           aria-label="Save changes"
-                          className="rounded-xl bg-sage-600 px-3 py-2 text-xs font-semibold text-white hover:bg-sage-700"
+                          className="min-h-9 rounded-xl bg-sage-600 px-3 py-2 text-xs font-semibold text-white hover:bg-sage-700"
                         >
                           Save
                         </button>
@@ -305,7 +481,7 @@ export function Fridge() {
                           type="button"
                           onClick={() => setEditingId(null)}
                           aria-label="Cancel editing"
-                          className="rounded-xl border border-parchment bg-white p-2 text-ink-muted hover:text-ink"
+                          className="flex min-h-9 min-w-9 items-center justify-center rounded-xl border border-parchment bg-white p-2 text-ink-muted hover:text-ink"
                         >
                           <X className="h-4 w-4" />
                         </button>
@@ -329,7 +505,9 @@ export function Fridge() {
                       <ExpiryBadge useBy={item.useBy} />
                     </div>
                     {item.useBy && (
-                      <p className="mt-1 text-xs text-ink-subtle">Use by {item.useBy}</p>
+                      <p className="mt-1 text-xs text-ink-subtle">
+                        Use by {formatReadableDate(item.useBy)}
+                      </p>
                     )}
                   </div>
 
@@ -337,7 +515,7 @@ export function Fridge() {
                     <button
                       type="button"
                       onClick={() => handleMarkUsed(item)}
-                      className="inline-flex items-center gap-1 rounded-xl border border-sage-200 bg-sage-50 px-3 py-1.5 text-xs font-semibold text-sage-800 transition hover:bg-sage-600 hover:text-white"
+                      className="inline-flex min-h-10 items-center gap-1 rounded-xl border border-sage-200 bg-sage-50 px-3 py-1.5 text-xs font-semibold text-sage-800 transition hover:bg-sage-600 hover:text-white"
                     >
                       <Check className="h-3.5 w-3.5" />
                       Used
@@ -346,15 +524,15 @@ export function Fridge() {
                       type="button"
                       onClick={() => startEdit(item)}
                       aria-label={`Edit ${item.name}`}
-                      className="rounded-xl p-2 text-ink-muted transition hover:bg-cream-dark hover:text-ink"
+                      className="flex min-h-10 min-w-10 items-center justify-center rounded-xl p-2 text-ink-muted transition hover:bg-cream-dark hover:text-ink"
                     >
                       <Pencil className="h-4 w-4" />
                     </button>
                     <button
                       type="button"
-                      onClick={() => removeItem(item.id)}
+                      onClick={() => handleDeleteItem(item)}
                       aria-label={`Delete ${item.name}`}
-                      className="rounded-xl p-2 text-ink-muted transition hover:bg-tomato-50 hover:text-tomato-600"
+                      className="flex min-h-10 min-w-10 items-center justify-center rounded-xl p-2 text-ink-muted transition hover:bg-tomato-50 hover:text-tomato-600"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>

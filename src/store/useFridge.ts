@@ -12,6 +12,9 @@ interface FridgeState {
   ) => void
   removeItem: (id: string) => void
   markUsed: (id: string) => void
+  restoreItem: (item: FridgeItem) => void
+  restoreItems: (items: readonly FridgeItem[]) => void
+  removeItemsByIds: (ids: readonly string[]) => void
   loadSampleFridge: (today?: Date) => void
   clearFridge: () => void
 }
@@ -120,6 +123,25 @@ export const useFridge = create<FridgeState>()(
         set((state) => ({
           items: state.items.filter((item) => item.id !== id),
         })),
+      restoreItem: (item) =>
+        set((state) => {
+          if (state.items.some((existing) => existing.id === item.id)) {
+            return state
+          }
+          return { items: [...state.items, item] }
+        }),
+      restoreItems: (restored) =>
+        set((state) => {
+          const existingIds = new Set(state.items.map((i) => i.id))
+          const additions = restored.filter((item) => !existingIds.has(item.id))
+          return additions.length > 0 ? { items: [...state.items, ...additions] } : state
+        }),
+      removeItemsByIds: (ids) => {
+        const idSet = new Set(ids)
+        set((state) => ({
+          items: state.items.filter((item) => !idSet.has(item.id)),
+        }))
+      },
       loadSampleFridge: (today = new Date()) =>
         set({
           items: createSampleFridgeItems(today),

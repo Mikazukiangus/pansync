@@ -208,19 +208,35 @@ save all the previous instructions into a file named prompts.md and save it in t
 
 ---
 
-## Prompt 8 — `2026-11-26 22:06:44 -08:00`
+## Prompt 8 — `2026-11-27 14:04:03 +08:00`
+
+```text
+1. add a serverless connection that pulls from mealsdb.com using the following guides https://www.themealdb.com/AGENTS.md, https://www.themealdb.com/SKILL.md  and the endpoints at (https://www.themealdb.com/api/spec/openapi-v1.yaml)                                                                                      2. store this in/api at project root level (not the src file)
+   
+   3. include a /health.ts and /mealsdb.ts within the same subfolder
+   
+   4. do not hardcode any key, I will input them manually.    5. let me know if you have any questions to clarify.
+```
+
+### Prompt 8 Clarifications Confirmed
+- **Frontend wiring**: Route frontend (`src/data/mealdb.ts`) through `/api/mealsdb` (keep IndexedDB cache & offline fallback).
+- **Environment variable**: `THEMEALDB_API_KEY` (with `.env.example` template; no hardcoded key).
+- **Runtime & local dev**: Vercel Functions (`api/health.ts` & `api/mealsdb.ts`) + updated `vercel.json` rewrite + local Vite middleware for dev.
+
+---
+
+## Prompt 9 — `2026-11-26 22:06:44 -08:00`
 
 ```text
 For Recipe page.
 
 1. Change the multiplier to be for how many pax instead of ingredients.
-
 2. For ingredients. if i choose to undo a checked item marked as "have" i can click the tick again to say that it is missing.
 ```
 
 ---
 
-## Prompt 9 — `2026-11-26 22:12:33 -08:00`
+## Prompt 10 — `2026-11-26 22:12:33 -08:00`
 
 ```text
 In my meal planner, can we also include some form of calendar? And add some form of date. I at most 1 week expanded at most but still be able to scroll between weeks. and have a overview calendar that shows which days are already planned
@@ -228,7 +244,7 @@ In my meal planner, can we also include some form of calendar? And add some form
 
 ---
 
-## Prompt 10 — `2026-11-26 22:17:47 -08:00`
+## Prompt 11 — `2026-11-26 22:17:47 -08:00`
 
 ```text
 Now my planner doesnt have breakfast in there. Lets add breakfast section above lunch.
@@ -246,16 +262,24 @@ could you do a smoke test to check if this api is working normally?
 
 ---
 
-## Prompt 13 — `2026-11-27 14:26:23 +08:00`
+## Prompt 13 — `2026-11-26 22:13:47 -08:00`
 
 ```text
-can you add on the first page and the bottom of the page whether the api health is good or not? green for all ok. 
+enhance app further using Jakob Nielsen’s 10 usability heuristics
 ```
 
 ---
 
-## Prompt 14 — `2026-11-27 14:29:28 +08:00`
+## Prompt 14 — `2026-11-26 22:22:59 -08:00`
 
 ```text
-there is no api key as it is keyless so don't say that api key is not configured
+fix any conflicts before i publish to github
+```
+
+---
+
+## Prompt 15 — `2026-11-26 22:27:53 -08:00`
+
+```text
+it still says the push overwrites previous 5 commits. relook into conflicts as my teammates are working on this concurrently
 ```

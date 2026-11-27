@@ -4,6 +4,7 @@ import {
   daysUntil,
   formatExpiryLabel,
   formatLocalDate,
+  formatReadableDate,
   formatSlotLabel,
   formatWeekRange,
   getExpiryStatus,
@@ -72,6 +73,13 @@ describe('dates helpers', () => {
     ]
     const sorted = sortFridgeItemsByExpiry(items, refToday)
     expect(sorted.map((i) => i.name)).toEqual(['Milk', 'Spinach', 'Carrots', 'Honey'])
+  })
+
+  it('formats YYYY-MM-DD dates into readable strings and preserves invalid input', () => {
+    const formatted = formatReadableDate('2026-12-05')
+    expect(formatted).toContain('Dec')
+    expect(formatted).toContain('5')
+    expect(formatReadableDate('not-a-date')).toBe('not-a-date')
   })
 
   it('computes Monday-anchored weeks, full month grids, and slot labels', () => {

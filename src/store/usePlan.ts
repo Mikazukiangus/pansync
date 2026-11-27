@@ -11,8 +11,13 @@ interface PlanState {
   moveSlot: (from: PlanSlotKey, to: PlanSlotKey) => void
   clearWeek: (dateYmds: readonly string[]) => void
   clearPlan: () => void
+  restorePlan: (
+    slots: Partial<Record<PlanSlotKey, Recipe>>,
+    checkedItems: Record<string, boolean>,
+  ) => void
   toggleChecked: (itemKey: string) => void
   clearChecked: () => void
+  restoreChecked: (checkedItems: Record<string, boolean>) => void
   recordRecentRecipes: (recipes: readonly Recipe[]) => void
 }
 
@@ -63,6 +68,7 @@ export const usePlan = create<PlanState>()(
           return { slots: next }
         }),
       clearPlan: () => set({ slots: {}, checkedItems: {} }),
+      restorePlan: (slots, checkedItems) => set({ slots, checkedItems }),
       toggleChecked: (itemKey) =>
         set((state) => ({
           checkedItems: {
@@ -71,6 +77,7 @@ export const usePlan = create<PlanState>()(
           },
         })),
       clearChecked: () => set({ checkedItems: {} }),
+      restoreChecked: (checkedItems) => set({ checkedItems }),
       recordRecentRecipes: (recipes) =>
         set((state) => {
           const combined = [...recipes, ...state.recentRecipes]

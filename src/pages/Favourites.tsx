@@ -1,4 +1,4 @@
-import { Heart, Search } from 'lucide-react'
+import { Heart, Search, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AddToPlanModal } from '../components/AddToPlanModal'
@@ -20,12 +20,24 @@ export function Favourites() {
   const staples = useSettings((s) => s.staples)
 
   const [planningRecipe, setPlanningRecipe] = useState<Recipe | null>(null)
+  const [query, setQuery] = useState('')
 
   const favouriteRecipes = useMemo(() => {
     return favIds
       .map((id) => recipesById.get(id) ?? savedRecipes[id])
       .filter((r): r is Recipe => Boolean(r))
   }, [favIds, recipesById, savedRecipes])
+
+  const filteredFavourites = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return favouriteRecipes
+    return favouriteRecipes.filter(
+      (r) =>
+        r.name.toLowerCase().includes(q) ||
+        r.category.toLowerCase().includes(q) ||
+        r.area.toLowerCase().includes(q),
+    )
+  }, [favouriteRecipes, query])
 
   const availablePool = useMemo(
     () => [...manualIngredients, ...fridgeItems.map((i) => i.name)],
@@ -41,10 +53,34 @@ export function Favourites() {
             Your go-to leftover rescues — ready to drop into any week&rsquo;s meal plan.
           </p>
         </div>
-        <span className="rounded-full bg-white px-3.5 py-1.5 text-xs font-semibold text-ink-muted ring-1 ring-parchment">
+        <span className="text-xs font-semibold text-ink-muted tabular-nums">
           {favouriteRecipes.length} saved
         </span>
       </div>
+
+      {favouriteRecipes.length > 3 && (
+        <div className="relative max-w-sm">
+          <Search className="pointer-events-none absolute top-3 left-3.5 h-4 w-4 text-ink-subtle" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label="Filter saved favourites"
+            placeholder="Filter favourites by name or cuisine..."
+            className="w-full rounded-2xl border border-parchment bg-white py-2.5 pr-9 pl-10 text-sm text-ink placeholder:text-ink-subtle focus:border-sage-500 focus:outline-none"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery('')}
+              aria-label="Clear filter"
+              className="absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-full text-ink-subtle hover:bg-cream hover:text-ink"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      )}
 
       {favouriteRecipes.length === 0 ? (
         <section className="rounded-3xl border border-dashed border-parchment bg-white/75 px-6 py-14 text-center">
@@ -59,15 +95,28 @@ export function Favourites() {
           </p>
           <Link
             to="/"
-            className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-sage-600 px-5 py-3 text-sm font-semibold text-white shadow-xs transition hover:bg-sage-700"
+            className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-2xl bg-sage-600 px-5 py-3 text-sm font-semibold text-white shadow-xs transition hover:bg-sage-700"
           >
             <Search className="h-4 w-4" />
             Find recipes
           </Link>
         </section>
+      ) : filteredFavourites.length === 0 ? (
+        <section className="rounded-3xl border border-parchment bg-white px-6 py-10 text-center">
+          <p className="text-sm font-medium text-ink-muted">
+            No saved recipes match &ldquo;{query}&rdquo;.
+          </p>
+          <button
+            type="button"
+            onClick={() => setQuery('')}
+            className="mt-3 min-h-9 rounded-xl bg-sage-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-sage-700"
+          >
+            Show all favourites
+          </button>
+        </section>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {favouriteRecipes.map((recipe) => {
+          {filteredFavourites.map((recipe) => {
             const match =
               availablePool.length > 0
                 ? evaluateRecipe(recipe, availablePool, {

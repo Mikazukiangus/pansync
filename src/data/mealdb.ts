@@ -134,7 +134,7 @@ export async function fetchAllMealDBRecipes(): Promise<Recipe[]> {
 
   const byId = new Map<string, Recipe>()
   for (const payload of responses) {
-    if (!payload.meals) continue
+    if (!Array.isArray(payload.meals)) continue
     for (const rawMeal of payload.meals) {
       if (rawMeal?.idMeal && rawMeal?.strMeal) {
         byId.set(String(rawMeal.idMeal), mapMealToRecipe(rawMeal))
@@ -154,7 +154,7 @@ export async function fetchMealDBIngredientsList(): Promise<string[]> {
     meals: Array<{ strIngredient?: string | null }> | null
   }>(`${API_BASE}/list.php?i=list`)
 
-  if (!data.meals || data.meals.length === 0) {
+  if (!Array.isArray(data.meals) || data.meals.length === 0) {
     throw new Error('Empty ingredient list from TheMealDB')
   }
 

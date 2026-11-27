@@ -83,4 +83,49 @@ describe('persisted Zustand stores', () => {
     useSettings.getState().addExcluded('Peanuts')
     expect(useSettings.getState().excludedIngredients).toContain('peanuts')
   })
+
+  it('supports undo restoration and batch removal on fridge items', () => {
+    useFridge.getState().addItem({ name: 'Spinach', quantity: '1 bag', useBy: '2026-11-28' })
+    useFridge.getState().addItem({ name: 'Eggs', quantity: '6', useBy: '2026-12-01' })
+    const initial = useFridge.getState().items
+    expect(initial).toHaveLength(2)
+
+    const removed = initial[0]
+    useFridge.getState().markUsed(removed.id)
+    expect(useFridge.getState().items).toHaveLength(1)
+
+    useFridge.getState().restoreItem(removed)
+    expect(useFridge.getState().items).toHaveLength(2)
+
+    const allIds = useFridge.getState().items.map((item) => item.id)
+    useFridge.getState().removeItemsByIds(allIds)
+    expect(useFridge.getState().items).toHaveLength(0)
+
+    useFridge.getState().restoreItems(initial)
+    expect(useFridge.getState().items).toHaveLength(2)
+  })
+
+  it('supports undo restoration of weekly plan slots and checked shopping items', () => {
+    usePlan.getState().setSlot('Mon-Dinner', mockRecipe)
+    usePlan.getState().toggleChecked('onion')
+    const snapshotSlots = { ...usePlan.getState().slots }
+    const snapshotChecked = { ...usePlan.getState().checkedItems }
+
+    usePlan.getState().clearChecked()
+    expect(usePlan.getState().checkedItems).toEqual({})
+    usePlan.getState().restoreChecked(snapshotChecked)
+    expect(usePlan.getState().checkedItems).toEqual({ onion: true })
+
+    usePlan.getState().clearPlan()
+    expect(usePlan.getState().slots).toEqual({})
+    usePlan.getState().restorePlan(snapshotSlots, snapshotChecked)
+    expect(usePlan.getState().slots['Mon-Dinner']?.id).toBe('r-101')
+    expect(usePlan.getState().checkedItems).toEqual({ onion: true })
+
+    usePlan.getState().setSlot('2026-11-23-Breakfast', mockRecipe)
+    usePlan.getState().setSlot('2026-11-30-Lunch', mockRecipe)
+    usePlan.getState().clearWeek(['2026-11-23'])
+    expect(usePlan.getState().slots['2026-11-23-Breakfast']).toBeUndefined()
+    expect(usePlan.getState().slots['2026-11-30-Lunch']?.id).toBe('r-101')
+  })
 })

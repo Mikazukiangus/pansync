@@ -4,6 +4,7 @@ import { GripVertical, Plus, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { formatSlotLabel } from '../lib/dates'
 import type { MealSlotType, PlanSlotKey, Recipe } from '../types'
+import { RecipeImage } from './RecipeImage'
 
 interface DaySlotProps {
   slotKey: PlanSlotKey
@@ -74,7 +75,8 @@ export function DaySlot({
             type="button"
             onClick={() => onRemove(slotKey)}
             aria-label={`Clear ${formatSlotLabel(slotKey)}`}
-            className="rounded-full p-0.5 text-ink-subtle transition hover:bg-tomato-50 hover:text-tomato-600 sm:hidden"
+            title="Remove from slot"
+            className="flex h-7 w-7 items-center justify-center rounded-full text-ink-subtle transition hover:bg-tomato-50 hover:text-tomato-600 sm:hidden"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -94,22 +96,20 @@ export function DaySlot({
             {...listeners}
             {...attributes}
             aria-label={`Drag ${recipe.name}`}
-            className="cursor-grab touch-none text-ink-subtle hover:text-ink active:cursor-grabbing"
+            className="flex h-8 w-6 cursor-grab touch-none items-center justify-center text-ink-subtle hover:text-ink active:cursor-grabbing"
           >
             <GripVertical className="h-4 w-4" />
           </button>
 
-          {recipe.image ? (
-            <img
-              src={recipe.image}
+          <div className="h-8 w-8 shrink-0 overflow-hidden rounded-lg">
+            <RecipeImage
+              recipe={recipe}
               alt=""
-              className="h-8 w-8 shrink-0 rounded-lg object-cover"
+              className="h-full w-full object-cover"
+              fallbackClassName="flex h-full w-full items-center justify-center"
+              emojiClassName="text-base"
             />
-          ) : (
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sage-100 text-base">
-              {recipe.emoji ?? '🍲'}
-            </div>
-          )}
+          </div>
 
           <Link
             to={`/recipe/${recipe.id}`}
@@ -122,7 +122,8 @@ export function DaySlot({
             type="button"
             onClick={() => onRemove(slotKey)}
             aria-label={`Clear ${formatSlotLabel(slotKey)}`}
-            className="hidden rounded-full p-1 text-ink-subtle transition hover:bg-tomato-50 hover:text-tomato-600 sm:inline-flex"
+            title="Remove from slot"
+            className="hidden h-7 w-7 items-center justify-center rounded-full text-ink-subtle transition hover:bg-tomato-50 hover:text-tomato-600 sm:inline-flex"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -131,7 +132,7 @@ export function DaySlot({
         <button
           type="button"
           onClick={() => onEmptyClick(slotKey)}
-          className="flex flex-1 items-center justify-center gap-1 rounded-xl py-2 text-xs font-medium text-ink-muted transition hover:text-sage-700 sm:justify-start sm:px-2"
+          className="flex min-h-11 flex-1 items-center justify-center gap-1 rounded-xl py-2 text-xs font-medium text-ink-muted transition hover:text-sage-700 sm:justify-start sm:px-2"
         >
           <Plus className="h-3.5 w-3.5" />
           Choose meal
