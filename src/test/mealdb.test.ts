@@ -1,9 +1,12 @@
 import { clear } from 'idb-keyval'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  fetchMealById,
+  fetchRandomMeal,
   getFallbackRecipes,
   loadRecipeDataset,
   mapMealToRecipe,
+  searchMealsByName,
 } from '../data/mealdb'
 
 describe('mealdb loader, IndexedDB cache, and fallback', () => {
@@ -99,5 +102,77 @@ describe('mealdb loader, IndexedDB cache, and fallback', () => {
     expect(secondLoad.isFallback).toBe(false)
     expect(secondLoad.recipes[0].id).toBe('52768')
     expect(fetchSpy.mock.calls.length).toBe(callCountAfterFirst)
+  })
+
+  it('calls /api/mealsdb for dish-name search, meal ID lookup, and random meal', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = String(input)
+      if (url.includes('/api/mealsdb?endpoint=search&s=Arrabiata')) {
+        return new Response(
+          JSON.stringify({
+            meals: [
+              {
+                idMeal: '52771',
+                strMeal: 'Spicy Arrabiata Penne',
+                strCategory: 'Vegetarian',
+                strArea: 'Italian',
+                strInstructions: 'Cook penne and toss with spicy tomato sauce.',
+                strIngredient1: 'penne rigate',
+                strMeasure1: '1 pound',
+              },
+            ],
+          }),
+          { status: 200 },
+        )
+      }
+      if (url.includes('/api/mealsdb?endpoint=lookup&i=52772')) {
+        return new Response(
+          JSON.stringify({
+            meals: [
+              {
+                idMeal: '52772',
+                strMeal: 'Teriyaki Chicken Casserole',
+                strCategory: 'Chicken',
+                strArea: 'Japanese',
+                strInstructions: 'Bake chicken in teriyaki glaze.',
+                strIngredient1: 'soy sauce',
+                strMeasure1: '3/4 cup',
+              },
+            ],
+          }),
+          { status: 200 },
+        )
+      }
+      if (url.includes('/api/mealsdb?endpoint=random')) {
+        return new Response(
+          JSON.stringify({
+            meals: [
+              {
+                idMeal: '52999',
+                strMeal: 'Surprise Stew',
+                strCategory: 'Beef',
+                strArea: 'Irish',
+                strInstructions: 'Simmer slowly.',
+                strIngredient1: 'Beef',
+                strMeasure1: '500g',
+              },
+            ],
+          }),
+          { status: 200 },
+        )
+      }
+      return new Response(JSON.stringify({ meals: null }), { status: 404 })
+    })
+
+    const searchRes = await searchMealsByName('Arrabiata')
+    expect(searchRes.fromServer).toBe(true)
+    expect(searchRes.recipes[0].name).toBe('Spicy Arrabiata Penne')
+
+    const detail = await fetchMealById('52772')
+    expect(detail?.name).toBe('Teriyaki Chicken Casserole')
+
+    const randomMeal = await fetchRandomMeal()
+    expect(randomMeal?.id).toBe('52999')
+    expect(fetchSpy).toHaveBeenCalledTimes(3)
   })
 })

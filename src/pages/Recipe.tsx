@@ -14,6 +14,7 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { AddToPlanModal } from '../components/AddToPlanModal'
+import { fetchMealById } from '../data/mealdb'
 import { useRecipes } from '../hooks/useRecipes'
 import { evaluateRecipe } from '../lib/matching'
 import { useFavourites } from '../store/useFavourites'
@@ -21,6 +22,7 @@ import { useFridge } from '../store/useFridge'
 import { usePlan } from '../store/usePlan'
 import { useSearch } from '../store/useSearch'
 import { useSettings } from '../store/useSettings'
+import type { Recipe } from '../types'
 
 function scaleMeasure(measure: string, multiplier: number): string {
   if (multiplier === 1 || !measure.trim()) return measure
@@ -47,16 +49,47 @@ export function RecipePage() {
   const [showPlanModal, setShowPlanModal] = useState(false)
   const [completedSteps, setCompletedSteps] = useState<Record<number, boolean>>({})
   const [portionScale, setPortionScale] = useState<number>(1)
+  const [lookupResult, setLookupResult] = useState<{
+    id: string
+    recipe: Recipe | null
+  } | null>(null)
 
-  const recipe = useMemo(() => {
+  const cachedRecipe = useMemo(() => {
     const fromDataset = recipesById.get(id)
     if (fromDataset) return fromDataset
     if (savedFavMap[id]) return savedFavMap[id]
     for (const slotRecipe of Object.values(planSlots)) {
       if (slotRecipe && slotRecipe.id === id) return slotRecipe
     }
+    const recentMatch = usePlan.getState().recentRecipes.find((r) => r.id === id)
+    if (recentMatch) return recentMatch
     return undefined
   }, [id, recipesById, savedFavMap, planSlots])
+
+  const shouldLookup = !cachedRecipe && /^[1-9]\d*$/.test(id)
+  const lookupPending = shouldLookup && lookupResult?.id !== id
+  const recipe =
+    cachedRecipe ?? (lookupResult?.id === id ? (lookupResult.recipe ?? undefined) : undefined)
+
+  // Fall back to live lookup.php?i={id} through /api/mealsdb for direct deep links
+  useEffect(() => {
+    if (!shouldLookup) return
+    let cancelled = false
+    fetchMealById(id)
+      .then((found) => {
+        if (!cancelled) {
+          setLookupResult({ id, recipe: found })
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setLookupResult({ id, recipe: null })
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [id, shouldLookup])
 
   useEffect(() => {
     if (recipe) {
@@ -78,7 +111,7 @@ export function RecipePage() {
     })
   }, [recipe, combinedAvailable, staples, fridgeItems])
 
-  if (loading && !recipe) {
+  if ((loading || lookupPending) && !recipe) {
     return (
       <div className="mx-auto max-w-4xl animate-pulse space-y-6">
         <div className="h-8 w-32 rounded-xl bg-cream-dark" />

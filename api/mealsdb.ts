@@ -25,6 +25,25 @@ function getNonEmptyParam(params: URLSearchParams, key: string): string | null {
   return val && val.length > 0 ? val : null
 }
 
+function inferEndpoint(params: URLSearchParams): string | null {
+  const explicit = getNonEmptyParam(params, 'endpoint')
+  if (explicit) return explicit
+
+  // Shorthand support mirroring TheMealDB query params directly:
+  // ?s=Arrabiata -> search, ?f=a -> search, ?i=52772 -> lookup, ?random=1 -> random
+  if (getNonEmptyParam(params, 's') || getNonEmptyParam(params, 'f')) {
+    return 'search'
+  }
+  const id = getNonEmptyParam(params, 'i')
+  if (id && /^[1-9]\d*$/.test(id)) {
+    return 'lookup'
+  }
+  if (params.get('random') === '1' || params.get('random') === 'true') {
+    return 'random'
+  }
+  return null
+}
+
 /**
  * Validate incoming query parameters strictly against TheMealDB OpenAPI v1 spec
  * (https://www.themealdb.com/api/spec/openapi-v1.yaml) and construct a safe,
@@ -34,12 +53,12 @@ export function buildUpstreamUrl(
   apiKey: string,
   params: URLSearchParams,
 ): BuildUpstreamResult {
-  const rawEndpoint = getNonEmptyParam(params, 'endpoint')
+  const rawEndpoint = inferEndpoint(params)
   if (!rawEndpoint) {
     return {
       ok: false,
       status: 400,
-      error: `Missing required "endpoint" query parameter. Supported: ${SUPPORTED_ENDPOINTS.join(', ')}.`,
+      error: `Missing required "endpoint" query parameter (or shorthand s/f/i/random). Supported: ${SUPPORTED_ENDPOINTS.join(', ')}.`,
     }
   }
 

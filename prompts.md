@@ -222,3 +222,13 @@ save all the previous instructions into a file named prompts.md and save it in t
 - **Frontend wiring**: Route frontend (`src/data/mealdb.ts`) through `/api/mealsdb` (keep IndexedDB cache & offline fallback).
 - **Environment variable**: `THEMEALDB_API_KEY` (with `.env.example` template; no hardcoded key).
 - **Runtime & local dev**: Vercel Functions (`api/health.ts` & `api/mealsdb.ts`) + updated `vercel.json` rewrite + local Vite middleware for dev.
+
+---
+
+## Prompt 9 — `2026-11-27 14:12:45 +08:00`
+
+```text
+Attached is just an example how the api is called when a search for food is done, update how your code works accordingly.
+```
+
+*(Attached screenshot showing TheMealDB v1 endpoints: Search meal by name `search.php?s=Arrabiata`, List all meals by first letter `search.php?f=a`, Lookup full meal details by id `lookup.php?i=52772`, and Lookup a single random meal `random.php`.)*

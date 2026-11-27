@@ -125,6 +125,28 @@ describe('serverless /api/health and /api/mealsdb handlers', () => {
       url: 'https://www.themealdb.com/api/json/v1/k1/latest.php',
     })
 
+    // Shorthand query support (?s=Arrabiata, ?f=a, ?i=52772, ?random=1)
+    expect(buildUpstreamUrl('k1', new URLSearchParams('s=Arrabiata'))).toEqual({
+      ok: true,
+      endpoint: 'search',
+      url: 'https://www.themealdb.com/api/json/v1/k1/search.php?s=Arrabiata',
+    })
+    expect(buildUpstreamUrl('k1', new URLSearchParams('f=a'))).toEqual({
+      ok: true,
+      endpoint: 'search',
+      url: 'https://www.themealdb.com/api/json/v1/k1/search.php?f=a',
+    })
+    expect(buildUpstreamUrl('k1', new URLSearchParams('i=52772'))).toEqual({
+      ok: true,
+      endpoint: 'lookup',
+      url: 'https://www.themealdb.com/api/json/v1/k1/lookup.php?i=52772',
+    })
+    expect(buildUpstreamUrl('k1', new URLSearchParams('random=1'))).toEqual({
+      ok: true,
+      endpoint: 'random',
+      url: 'https://www.themealdb.com/api/json/v1/k1/random.php',
+    })
+
     // Validation failures
     expect(buildUpstreamUrl('k1', new URLSearchParams('')).ok).toBe(false)
     expect(buildUpstreamUrl('k1', new URLSearchParams('endpoint=unknown')).ok).toBe(false)
