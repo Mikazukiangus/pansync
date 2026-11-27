@@ -399,3 +399,11 @@ i want do another improvement where i input the dish i want to make to give me t
 ```text
 let me know when this is done. 
 ```
+
+---
+
+## Prompt 28 — `2026-11-27 15:50:01 +08:00`
+
+```text
+figure how to Help users recognise, diagnose and recover from errors: When no matching recipes are found, explain why and suggest alternatives, such as adding one more ingredient or adjusting dietary filters.
+```

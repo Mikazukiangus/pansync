@@ -16,6 +16,11 @@ import { AddToPlanModal } from '../components/AddToPlanModal'
 import { ApiHealthStatus } from '../components/ApiHealthStatus'
 import { ExpiryBadge } from '../components/ExpiryBadge'
 import { IngredientInput } from '../components/IngredientInput'
+import {
+  DishNoResultsCard,
+  IngredientNoResultsCard,
+  PriorityOnlyNoResultsCard,
+} from '../components/NoResultsRecovery'
 import { RecipeCard } from '../components/RecipeCard'
 import { RecipeComments } from '../components/RecipeComments'
 import { filterLocalRecipesByDish, searchMealsByName } from '../data/mealdb'
@@ -23,6 +28,11 @@ import { useRecipes } from '../hooks/useRecipes'
 import { formatSlotLabel, sortFridgeItemsByExpiry } from '../lib/dates'
 import { evaluateRecipe, ingredientMatches, matchRecipes } from '../lib/matching'
 import { MEAL_PRIORITIES, recipeMatchesPriorities } from '../lib/priorities'
+import {
+  diagnoseDishNoMatch,
+  diagnoseIngredientNoMatch,
+  diagnosePriorityOnlyNoMatch,
+} from '../lib/recovery'
 import { useFridge } from '../store/useFridge'
 import { usePlan } from '../store/usePlan'
 import { useSearch } from '../store/useSearch'
@@ -57,7 +67,9 @@ export function Find() {
   const loadSampleFridge = useFridge((s) => s.loadSampleFridge)
   const staples = useSettings((s) => s.staples)
   const excludedIngredients = useSettings((s) => s.excludedIngredients)
+  const removeExcluded = useSettings((s) => s.removeExcluded)
   const selectedPriorities = useSettings((s) => s.dietaryPreferences ?? [])
+  const togglePriority = useSettings((s) => s.toggleDietaryPreference)
   const clearPriorities = useSettings((s) => s.clearDietaryPreferences)
   const recordRecentRecipes = usePlan((s) => s.recordRecentRecipes)
 
@@ -122,12 +134,15 @@ export function Find() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [fridgeMode, searchMode])
 
+  const hasFreshDishResult =
+    Boolean(trimmedDishQuery) && dishSearchResult?.query === trimmedDishQuery
+
   // Debounced live dish search when typing in "By dish name" mode
   useEffect(() => {
-    if (searchMode !== 'dish' || trimmedDishQuery.length < 2) return
+    if (searchMode !== 'dish' || trimmedDishQuery.length < 2 || hasFreshDishResult) return
     let cancelled = false
-    const reqId = ++dishRequestIdRef.current
     const timer = setTimeout(() => {
+      const reqId = ++dishRequestIdRef.current
       void searchMealsByName(trimmedDishQuery, recipes).then((res) => {
         if (!cancelled && dishRequestIdRef.current === reqId) {
           setDishSearchResult({
@@ -143,7 +158,7 @@ export function Find() {
       cancelled = true
       clearTimeout(timer)
     }
-  }, [searchMode, trimmedDishQuery, recipes])
+  }, [searchMode, trimmedDishQuery, hasFreshDishResult, recipes])
 
   const triggerImmediateDishSearch = (rawQuery: string) => {
     const trimmed = rawQuery.trim()
@@ -186,29 +201,6 @@ export function Find() {
       }),
     [recipes, activeIngredients, staples, fridgeMode, fridgeItems, maxMissing, excludedIngredients],
   )
-
-  // Check if exclusions alone hid potential matches so empty states can diagnose the exact cause
-  const matchesWithoutExclusionsCount = useMemo(() => {
-    if (rawMatches.length > 0 || excludedIngredients.length === 0 || activeIngredients.length === 0) {
-      return 0
-    }
-    return matchRecipes(recipes, activeIngredients, {
-      staples,
-      fridgeMode,
-      fridgeItems: fridgeMode ? fridgeItems : [],
-      maxMissing,
-      excludedIngredients: [],
-    }).length
-  }, [
-    rawMatches.length,
-    excludedIngredients.length,
-    activeIngredients,
-    recipes,
-    staples,
-    fridgeMode,
-    fridgeItems,
-    maxMissing,
-  ])
 
   const matches = useMemo(() => {
     const priorityFiltered =
@@ -256,8 +248,6 @@ export function Find() {
     [searchMode, trimmedDishQuery, recipes],
   )
 
-  const hasFreshDishResult =
-    Boolean(trimmedDishQuery) && dishSearchResult?.query === trimmedDishQuery
   const dishSearching =
     searchMode === 'dish' && trimmedDishQuery.length >= 2 && !hasFreshDishResult
 
@@ -367,6 +357,121 @@ export function Find() {
       MEAL_PRIORITIES.filter((p) => selectedPriorities.includes(p.id)).map((p) => p.label),
     [selectedPriorities],
   )
+
+  const ingredientNoMatchDiagnosis = useMemo(() => {
+    if (
+      searchMode !== 'ingredients' ||
+      loading ||
+      activeIngredients.length === 0 ||
+      matches.length > 0
+    ) {
+      return null
+    }
+    return diagnoseIngredientNoMatch({
+      recipes,
+      ingredientSuggestions,
+      activeIngredients,
+      staples,
+      fridgeMode,
+      fridgeItems,
+      maxMissing,
+      excludedIngredients,
+      selectedPriorities,
+    })
+  }, [
+    searchMode,
+    loading,
+    activeIngredients,
+    matches.length,
+    recipes,
+    ingredientSuggestions,
+    staples,
+    fridgeMode,
+    fridgeItems,
+    maxMissing,
+    excludedIngredients,
+    selectedPriorities,
+  ])
+
+  const priorityOnlyNoMatchDiagnosis = useMemo(() => {
+    if (
+      searchMode !== 'ingredients' ||
+      loading ||
+      activeIngredients.length > 0 ||
+      selectedPriorities.length === 0 ||
+      priorityOnlyRecipes.length > 0
+    ) {
+      return null
+    }
+    return diagnosePriorityOnlyNoMatch(recipes, selectedPriorities, excludedIngredients)
+  }, [
+    searchMode,
+    loading,
+    activeIngredients.length,
+    selectedPriorities,
+    priorityOnlyRecipes.length,
+    recipes,
+    excludedIngredients,
+  ])
+
+  const dishNoMatchDiagnosis = useMemo(() => {
+    if (
+      searchMode !== 'dish' ||
+      !trimmedDishQuery ||
+      dishSearching ||
+      dishMatches.length > 0
+    ) {
+      return null
+    }
+    return diagnoseDishNoMatch({
+      query: trimmedDishQuery,
+      rawDishMatches,
+      dishMatchesAfterExclusions,
+      recipes,
+      staples,
+      selectedPriorities,
+      excludedIngredients,
+    })
+  }, [
+    searchMode,
+    trimmedDishQuery,
+    dishSearching,
+    dishMatches.length,
+    rawDishMatches,
+    dishMatchesAfterExclusions,
+    recipes,
+    staples,
+    selectedPriorities,
+    excludedIngredients,
+  ])
+
+  const handleAddRecoveryIngredient = (ingredientName: string) => {
+    if (fridgeMode) {
+      const seeded = [...fridgeItems.map((f) => f.name), ingredientName].join(', ')
+      setFridgeMode(false)
+      clearIngredients()
+      addIngredients(seeded)
+      return
+    }
+    addIngredients(ingredientName)
+  }
+
+  const handleReplaceRecoveryIngredient = (oldName: string, newName: string) => {
+    removeIngredient(oldName)
+    addIngredients(newName)
+  }
+
+  const handleSwitchToDishSearch = (dish: string) => {
+    setSearchMode('dish')
+    triggerImmediateDishSearch(dish)
+  }
+
+  const handleSwitchToIngredientSearch = (raw: string) => {
+    setFridgeMode(false)
+    clearIngredients()
+    addIngredients(raw)
+    setSearchMode('ingredients')
+  }
 
   return (
     <div className="space-y-8">
@@ -755,44 +860,21 @@ export function Find() {
               </div>
             ))}
           </div>
-        ) : dishMatches.length === 0 ? (
-          <section className="rounded-3xl border border-parchment bg-white px-6 py-12 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-tomato-50 text-tomato-600">
-              <UtensilsCrossed className="h-6 w-6" />
-            </div>
-            <h3 className="mt-3 font-display text-xl font-semibold text-ink">
-              No recipes found for &ldquo;{trimmedDishQuery}&rdquo;
-            </h3>
-            <p className="mx-auto mt-1 max-w-md text-sm text-ink-muted">
-              {selectedPriorities.length > 0 && dishMatchesAfterExclusions.length > 0
-                ? `${dishMatchesAfterExclusions.length} matching dish${dishMatchesAfterExclusions.length === 1 ? ' was' : 'es were'} filtered out by your dietary preferences (${activePriorityLabels.join(', ')}).`
-                : excludedIngredients.length > 0 && rawDishMatches.length > 0
-                  ? `${rawDishMatches.length} matching dish${rawDishMatches.length === 1 ? ' was' : 'es were'} hidden by your excluded ingredients (${excludedIngredients.join(', ')}).`
-                  : 'Try a broader dish name like "Pasta", "Curry", "Chicken", or "Fried Rice".'}
-            </p>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-              {selectedPriorities.length > 0 && dishMatchesAfterExclusions.length > 0 && (
-                <button
-                  type="button"
-                  onClick={clearPriorities}
-                  className="min-h-10 rounded-xl bg-sage-600 px-4 py-2 text-xs font-semibold text-white hover:bg-sage-700"
-                >
-                  Clear dietary preferences
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  clearDishQuery()
-                  setDishSearchResult(null)
-                  dishInputRef.current?.focus()
-                }}
-                className="min-h-10 rounded-xl border border-parchment bg-white px-4 py-2 text-xs font-semibold text-ink hover:bg-cream"
-              >
-                Clear search
-              </button>
-            </div>
-          </section>
+        ) : dishMatches.length === 0 && dishNoMatchDiagnosis ? (
+          <DishNoResultsCard
+            query={trimmedDishQuery}
+            diagnosis={dishNoMatchDiagnosis}
+            onSelectDishSuggestion={triggerImmediateDishSearch}
+            onSwitchToIngredientSearch={handleSwitchToIngredientSearch}
+            onTogglePriority={togglePriority}
+            onClearPriorities={clearPriorities}
+            onRemoveExclusion={removeExcluded}
+            onClearDishSearch={() => {
+              clearDishQuery()
+              setDishSearchResult(null)
+              dishInputRef.current?.focus()
+            }}
+          />
         ) : (
           <div className="space-y-6">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -886,27 +968,13 @@ export function Find() {
           </div>
         </section>
       ) : activeIngredients.length === 0 && selectedPriorities.length > 0 ? (
-        priorityOnlyRecipes.length === 0 ? (
-          <section className="rounded-3xl border border-parchment bg-white px-6 py-12 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-tomato-50 text-tomato-600">
-              <UtensilsCrossed className="h-6 w-6" />
-            </div>
-            <h3 className="mt-3 font-display text-xl font-semibold text-ink">
-              No recipes match all selected priorities
-            </h3>
-            <p className="mx-auto mt-1 max-w-md text-sm text-ink-muted">
-              No recipes combine {activePriorityLabels.join(' + ')}. Try deselecting one priority to see more options.
-            </p>
-            <div className="mt-4 flex justify-center">
-              <button
-                type="button"
-                onClick={clearPriorities}
-                className="min-h-10 rounded-xl bg-sage-600 px-4 py-2 text-xs font-semibold text-white hover:bg-sage-700"
-              >
-                Clear priorities
-              </button>
-            </div>
-          </section>
+        priorityOnlyRecipes.length === 0 && priorityOnlyNoMatchDiagnosis ? (
+          <PriorityOnlyNoResultsCard
+            diagnosis={priorityOnlyNoMatchDiagnosis}
+            onTogglePriority={togglePriority}
+            onClearPriorities={clearPriorities}
+            onRemoveExclusion={removeExcluded}
+          />
         ) : (
           <div className="space-y-6">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -948,53 +1016,20 @@ export function Find() {
             )}
           </div>
         )
-      ) : matches.length === 0 ? (
-        <section className="rounded-3xl border border-parchment bg-white px-6 py-12 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-tomato-50 text-tomato-600">
-            <UtensilsCrossed className="h-6 w-6" />
-          </div>
-          <h3 className="mt-3 font-display text-xl font-semibold text-ink">
-            No recipes matched that exact filter
-          </h3>
-          <p className="mx-auto mt-1 max-w-md text-sm text-ink-muted">
-            {selectedPriorities.length > 0 && rawMatches.length > 0
-              ? `${rawMatches.length} ingredient match${rawMatches.length === 1 ? ' was' : 'es were'} filtered out by your dietary preferences (${activePriorityLabels.join(', ')}).`
-              : matchesWithoutExclusionsCount > 0
-                ? `${matchesWithoutExclusionsCount} matching recipe${matchesWithoutExclusionsCount === 1 ? ' was' : 's were'} hidden by your excluded ingredients (${excludedIngredients.join(', ')}).`
-                : maxMissing !== null
-                  ? 'Try relaxing the "Missing at most N" filter so recipes needing a couple extra items can appear.'
-                  : 'Try adding a common staple like eggs, rice, onion, garlic, or potatoes — or reset your current list.'}
-          </p>
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-            {selectedPriorities.length > 0 && (
-              <button
-                type="button"
-                onClick={clearPriorities}
-                className="min-h-10 rounded-xl bg-sage-600 px-4 py-2 text-xs font-semibold text-white hover:bg-sage-700"
-              >
-                Clear dietary preferences
-              </button>
-            )}
-            {maxMissing !== null && (
-              <button
-                type="button"
-                onClick={() => setMaxMissing(null)}
-                className="min-h-10 rounded-xl bg-sage-600 px-4 py-2 text-xs font-semibold text-white hover:bg-sage-700"
-              >
-                Show all matching recipes
-              </button>
-            )}
-            {!fridgeMode && manualIngredients.length > 0 && (
-              <button
-                type="button"
-                onClick={clearIngredients}
-                className="min-h-10 rounded-xl border border-parchment bg-white px-4 py-2 text-xs font-semibold text-ink hover:bg-cream"
-              >
-                Clear ingredients
-              </button>
-            )}
-          </div>
-        </section>
+      ) : matches.length === 0 && ingredientNoMatchDiagnosis ? (
+        <IngredientNoResultsCard
+          diagnosis={ingredientNoMatchDiagnosis}
+          fridgeMode={fridgeMode}
+          hasManualIngredients={manualIngredients.length > 0}
+          onAddIngredient={handleAddRecoveryIngredient}
+          onReplaceIngredient={handleReplaceRecoveryIngredient}
+          onRelaxMaxMissing={setMaxMissing}
+          onTogglePriority={togglePriority}
+          onClearPriorities={clearPriorities}
+          onRemoveExclusion={removeExcluded}
+          onSwitchToDishSearch={handleSwitchToDishSearch}
+          onClearIngredients={clearIngredients}
+        />
       ) : (
         <div className="space-y-6">
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
