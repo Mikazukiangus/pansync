@@ -467,8 +467,8 @@ export function Plan() {
         )}
 
         <div className="grid gap-6 lg:grid-cols-12 lg:items-start">
-          {/* Overview Calendar */}
-          <div className="order-1 lg:col-span-4 lg:col-start-1 lg:row-start-1">
+          {/* Sticky Left Column: Overview Calendar + Favourites/Recent bubble moving together */}
+          <div className="space-y-4 lg:sticky lg:top-20 lg:col-span-4">
             <OverviewCalendar
               year={calendarYear}
               month={calendarMonth}
@@ -481,12 +481,75 @@ export function Plan() {
               onToday={jumpToToday}
               onSelectDate={(date) => selectWeek(date, date)}
             />
+
+            {/* Draggable & Tap-to-Plan Sidebar Palette directly under the calendar */}
+            <aside
+              aria-label="Favourites and recent recipes"
+              className="rounded-3xl border border-parchment bg-white p-5 shadow-xs"
+            >
+              <div className="grid grid-cols-2 gap-1 rounded-2xl bg-cream p-1">
+                <button
+                  type="button"
+                  onClick={() => setSidebarTab('favourites')}
+                  className={`flex min-h-10 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold tabular-nums transition ${
+                    sidebarTab === 'favourites'
+                      ? 'bg-white text-ink shadow-2xs'
+                      : 'text-ink-muted hover:text-ink'
+                  }`}
+                >
+                  <Heart className="h-3.5 w-3.5 text-tomato-500" />
+                  Favourites ({favouriteList.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSidebarTab('recent')}
+                  className={`flex min-h-10 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold tabular-nums transition ${
+                    sidebarTab === 'recent'
+                      ? 'bg-white text-ink shadow-2xs'
+                      : 'text-ink-muted hover:text-ink'
+                  }`}
+                >
+                  <History className="h-3.5 w-3.5 text-sage-600" />
+                  {recentRecipes.length > 0 ? 'Recent' : 'Ideas'} ({recentOrStarterList.length})
+                </button>
+              </div>
+
+              <p className="mt-3 text-xs text-ink-muted">
+                Drag by the handle onto a day slot, or tap a recipe to assign it:
+              </p>
+
+              <div className="mt-3 max-h-56 space-y-2 overflow-y-auto pr-1">
+                {(sidebarTab === 'favourites' ? favouriteList : recentOrStarterList).map(
+                  (recipe) => (
+                    <DraggablePaletteRecipe
+                      key={recipe.id}
+                      recipe={recipe}
+                      onQuickPick={setQuickPickRecipe}
+                    />
+                  ),
+                )}
+
+                {sidebarTab === 'favourites' && favouriteList.length === 0 && (
+                  <div className="rounded-2xl border border-dashed border-parchment bg-cream/50 p-4 text-center text-xs text-ink-muted">
+                    Heart recipes while browsing to keep them handy here, or switch to{' '}
+                    <button
+                      type="button"
+                      onClick={() => setSidebarTab('recent')}
+                      className="font-semibold text-sage-700 underline"
+                    >
+                      Ideas
+                    </button>
+                    .
+                  </div>
+                )}
+              </div>
+            </aside>
           </div>
 
-          {/* Expanded 1-Week Meal Grid (at most 1 week expanded at a time) */}
+          {/* Right Column: Expanded 1-Week Meal Grid (at most 1 week expanded at a time) */}
           <section
             aria-label="Expanded week meal plan"
-            className="order-2 space-y-4 lg:col-span-8 lg:col-start-5 lg:row-span-2 lg:row-start-1"
+            className="space-y-4 lg:col-span-8"
           >
             {/* Week Stepper & Scrollable Week Strip */}
             <div className="rounded-3xl border border-parchment bg-white p-4 shadow-xs">
@@ -626,66 +689,6 @@ export function Plan() {
               })}
             </div>
           </section>
-
-          {/* Draggable & Tap-to-Plan Sidebar Palette */}
-          <aside className="order-3 rounded-3xl border border-parchment bg-white p-5 shadow-xs lg:col-span-4 lg:col-start-1 lg:row-start-2">
-            <div className="grid grid-cols-2 gap-1 rounded-2xl bg-cream p-1">
-              <button
-                type="button"
-                onClick={() => setSidebarTab('favourites')}
-                className={`flex min-h-10 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold tabular-nums transition ${
-                  sidebarTab === 'favourites'
-                    ? 'bg-white text-ink shadow-2xs'
-                    : 'text-ink-muted hover:text-ink'
-                }`}
-              >
-                <Heart className="h-3.5 w-3.5 text-tomato-500" />
-                Favourites ({favouriteList.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setSidebarTab('recent')}
-                className={`flex min-h-10 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold tabular-nums transition ${
-                  sidebarTab === 'recent'
-                    ? 'bg-white text-ink shadow-2xs'
-                    : 'text-ink-muted hover:text-ink'
-                }`}
-              >
-                <History className="h-3.5 w-3.5 text-sage-600" />
-                {recentRecipes.length > 0 ? 'Recent' : 'Ideas'} ({recentOrStarterList.length})
-              </button>
-            </div>
-
-            <p className="mt-3 text-xs text-ink-muted">
-              Drag by the handle onto a day slot, or tap a recipe to assign it:
-            </p>
-
-            <div className="mt-3 max-h-96 space-y-2 overflow-y-auto pr-1">
-              {(sidebarTab === 'favourites' ? favouriteList : recentOrStarterList).map(
-                (recipe) => (
-                  <DraggablePaletteRecipe
-                    key={recipe.id}
-                    recipe={recipe}
-                    onQuickPick={setQuickPickRecipe}
-                  />
-                ),
-              )}
-
-              {sidebarTab === 'favourites' && favouriteList.length === 0 && (
-                <div className="rounded-2xl border border-dashed border-parchment bg-cream/50 p-4 text-center text-xs text-ink-muted">
-                  Heart recipes while browsing to keep them handy here, or switch to{' '}
-                  <button
-                    type="button"
-                    onClick={() => setSidebarTab('recent')}
-                    className="font-semibold text-sage-700 underline"
-                  >
-                    Ideas
-                  </button>
-                  .
-                </div>
-              )}
-            </div>
-          </aside>
         </div>
 
         {/* Consolidated Smart Shopping List */}

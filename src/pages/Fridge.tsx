@@ -23,6 +23,7 @@ import {
 import { normalize } from '../lib/matching'
 import { useFridge } from '../store/useFridge'
 import { useSearch } from '../store/useSearch'
+import { useSettings } from '../store/useSettings'
 import type { FridgeItem } from '../types'
 
 type FridgeFilter = 'all' | 'urgent' | 'fresh'
@@ -43,6 +44,14 @@ export function Fridge() {
   const setFridgeMode = useSearch((s) => s.setFridgeMode)
   const setMaxMissing = useSearch((s) => s.setMaxMissing)
 
+  const staples = useSettings((s) => s.staples)
+  const excludedIngredients = useSettings((s) => s.excludedIngredients)
+  const addStaple = useSettings((s) => s.addStaple)
+  const removeStaple = useSettings((s) => s.removeStaple)
+  const resetStaples = useSettings((s) => s.resetStaples)
+
+  const [newStaple, setNewStaple] = useState('')
+  const [stapleFeedback, setStapleFeedback] = useState<string | null>(null)
   const [name, setName] = useState('')
   const [quantity, setQuantity] = useState('')
   const [useBy, setUseBy] = useState(() => addDaysToDate(3))
@@ -179,6 +188,27 @@ export function Fridge() {
     navigate('/')
   }
 
+  const handleAddStaple = (e: React.FormEvent) => {
+    e.preventDefault()
+    const cleaned = newStaple.trim()
+    if (!cleaned) {
+      setStapleFeedback('Enter an ingredient name first.')
+      return
+    }
+    const norm = normalize(cleaned)
+    if (staples.some((s) => normalize(s) === norm)) {
+      setStapleFeedback(`"${cleaned}" is already in your pantry staples.`)
+      return
+    }
+    if (excludedIngredients.some((ex) => normalize(ex) === norm)) {
+      setStapleFeedback(`Added "${cleaned}". Note: it is also in your Excluded list.`)
+    } else {
+      setStapleFeedback(null)
+    }
+    addStaple(cleaned)
+    setNewStaple('')
+  }
+
   return (
     <div className="space-y-8">
       {/* Header + Cook with what's expiring CTA */}
@@ -211,6 +241,76 @@ export function Fridge() {
           </div>
         )}
       </div>
+
+      {/* Pantry Staples top section */}
+      <section aria-label="Pantry staples" className="rounded-3xl border border-parchment bg-white p-6 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-sage-600" />
+            <h2 className="font-display text-lg font-semibold text-ink tabular-nums">
+              Pantry Staples ({staples.length})
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              resetStaples()
+              setStapleFeedback('Staples reset to defaults.')
+            }}
+            className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-sage-700 transition hover:bg-sage-50 hover:text-sage-800"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            Reset defaults
+          </button>
+        </div>
+        <p className="mt-1 text-xs text-ink-muted">
+          Staples always count as &ldquo;have&rdquo; in recipes and are left off your shopping list.
+        </p>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          {staples.map((staple) => (
+            <span
+              key={staple}
+              className="inline-flex items-center gap-1.5 rounded-full bg-sage-50 px-3 py-1 text-xs font-medium text-sage-800 ring-1 ring-sage-200"
+            >
+              {staple}
+              <button
+                type="button"
+                onClick={() => removeStaple(staple)}
+                aria-label={`Remove staple ${staple}`}
+                className="flex h-4 w-4 items-center justify-center rounded-full text-sage-600 hover:bg-sage-200 hover:text-sage-900"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+
+        <form onSubmit={handleAddStaple} className="mt-3 flex gap-2 sm:max-w-lg">
+          <input
+            type="text"
+            value={newStaple}
+            onChange={(e) => {
+              setNewStaple(e.target.value)
+              if (stapleFeedback) setStapleFeedback(null)
+            }}
+            aria-label="Add pantry staple"
+            placeholder="Add staple (e.g. butter, soy sauce, flour)..."
+            className="flex-1 rounded-xl border border-parchment bg-cream/60 px-3 py-2 text-sm text-ink placeholder:text-ink-subtle focus:border-sage-500 focus:bg-white focus:outline-none"
+          />
+          <button
+            type="submit"
+            className="min-h-10 rounded-xl bg-sage-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-sage-700"
+          >
+            Add
+          </button>
+        </form>
+        {stapleFeedback && (
+          <p role="status" className="mt-2 text-xs font-medium text-honey-700">
+            {stapleFeedback}
+          </p>
+        )}
+      </section>
 
       {/* Status summary cards */}
       {items.length > 0 && (

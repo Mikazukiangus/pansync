@@ -304,26 +304,31 @@ Instead of staples on the top right, change it to preferences.
 
 ---
 
-## Prompt 18 — `2026-11-27 14:54:20 +08:00`
+## Prompt 18 — `2026-11-26 22:51:53 -08:00`
 
 ```text
-with the openfoodfacts api, can you suggest any additional information you can put for each recipes as indicated? I would need this to be applied to all recipes on the website. 
-```
+In the planning page, the favourites and recent bubble should be directly under the calendar.
 
-*(Attached screenshot of the Find page with areas circled on the right side of each `RecipeCard` header next to the recipe title: Bread omelette, Tortang Talong, Peanut Butter Cookies.)*
-
----
-
-## Prompt 19 — `2026-11-27 14:58:13 +08:00`
-
-```text
-option  1 and option3. Ensure the image is not too cramped. 
+as the calendar and favourite bubble the should move together when i scroll down to see other days of the week
 ```
 
 ---
 
-## Prompt 20 — `2026-11-27 15:00:34 +08:00`
+## Prompt 19 — `2026-11-26 22:54:42 -08:00`
 
 ```text
-let me know when this is done
+Move meal priorities as a segment called Dietary peferences in the preferences button at the top right
 ```
+
+---
+
+## Prompt 20 — `2026-11-26 23:00:10 -08:00`
+
+```text
+in the preference button:
+
+1. Change title from 'pantry & dietary Preference" to "Preferences"
+
+2. Move pantry staples segment to the fridge page as the top section
+```
+

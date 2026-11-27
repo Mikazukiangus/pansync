@@ -16,11 +16,7 @@ import { RecipeCard } from '../components/RecipeCard'
 import { useRecipes } from '../hooks/useRecipes'
 import { formatSlotLabel, sortFridgeItemsByExpiry } from '../lib/dates'
 import { ingredientMatches, matchRecipes } from '../lib/matching'
-import {
-  MEAL_PRIORITIES,
-  recipeMatchesPriorities,
-  type MealPriorityId,
-} from '../lib/priorities'
+import { MEAL_PRIORITIES, recipeMatchesPriorities } from '../lib/priorities'
 import { useFridge } from '../store/useFridge'
 import { usePlan } from '../store/usePlan'
 import { useSearch } from '../store/useSearch'
@@ -46,20 +42,19 @@ export function Find() {
   const loadSampleFridge = useFridge((s) => s.loadSampleFridge)
   const staples = useSettings((s) => s.staples)
   const excludedIngredients = useSettings((s) => s.excludedIngredients)
+  const selectedPriorities = useSettings((s) => s.dietaryPreferences ?? [])
+  const clearPriorities = useSettings((s) => s.clearDietaryPreferences)
   const recordRecentRecipes = usePlan((s) => s.recordRecentRecipes)
 
   const {
     manualIngredients,
     fridgeMode,
     maxMissing,
-    selectedPriorities,
     addIngredients,
     removeIngredient,
     clearIngredients,
     setFridgeMode,
     setMaxMissing,
-    togglePriority,
-    clearPriorities,
   } = useSearch()
 
   const [planningRecipe, setPlanningRecipe] = useState<Recipe | null>(null)
@@ -177,29 +172,6 @@ export function Find() {
       .sort((a, b) => a.name.localeCompare(b.name))
   }, [activeIngredients.length, selectedPriorities, recipes, excludedIngredients])
 
-  const priorityCounts = useMemo(() => {
-    const baseRecipes =
-      activeIngredients.length > 0
-        ? rawMatches.map((m) => m.recipe)
-        : excludedIngredients.length > 0
-          ? recipes.filter(
-              (recipe) =>
-                !recipe.ingredients.some((ing) =>
-                  excludedIngredients.some((ex) => ingredientMatches(ex, ing.name)),
-                ),
-            )
-          : recipes
-
-    const counts = new Map<MealPriorityId, number>()
-    for (const option of MEAL_PRIORITIES) {
-      counts.set(
-        option.id,
-        baseRecipes.filter((r) => recipeMatchesPriorities(r, [option.id])).length,
-      )
-    }
-    return counts
-  }, [activeIngredients.length, rawMatches, recipes, excludedIngredients])
-
   const queryKey = useMemo(
     () =>
       `${fridgeMode ? 'fridge' : 'manual'}:${maxMissing ?? 'all'}:${sortMode}:${selectedPriorities.join(',')}:${activeIngredients.join('|')}`,
@@ -311,10 +283,26 @@ export function Find() {
               )}
             </button>
 
-            {excludedIngredients.length > 0 && (
-              <span className="text-xs font-medium text-tomato-700">
-                Excluding: {excludedIngredients.join(', ')}
-              </span>
+            {(excludedIngredients.length > 0 || activePriorityLabels.length > 0) && (
+              <div className="flex flex-wrap items-center gap-3 text-xs font-medium">
+                {activePriorityLabels.length > 0 && (
+                  <span className="inline-flex items-center gap-1.5 text-sage-700">
+                    <span>Dietary: {activePriorityLabels.join(', ')}</span>
+                    <button
+                      type="button"
+                      onClick={clearPriorities}
+                      className="font-semibold underline hover:text-sage-800"
+                    >
+                      Clear
+                    </button>
+                  </span>
+                )}
+                {excludedIngredients.length > 0 && (
+                  <span className="text-tomato-700">
+                    Excluding: {excludedIngredients.join(', ')}
+                  </span>
+                )}
+              </div>
             )}
           </div>
 
@@ -387,63 +375,6 @@ export function Find() {
               externalInputRef={searchInputRef}
             />
           )}
-        </div>
-      </section>
-
-      {/* Meal Recipe Priorities directly under the hero fridge bubble */}
-      <section aria-label="Meal recipe priorities" className="space-y-2.5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-baseline gap-2">
-            <h2 className="text-xs font-semibold tracking-wide text-ink-muted uppercase">
-              Meal priorities
-            </h2>
-            <span className="text-xs text-ink-subtle">
-              Focus results by nutrition or dietary priority
-            </span>
-          </div>
-          {selectedPriorities.length > 0 && (
-            <button
-              type="button"
-              onClick={clearPriorities}
-              className="text-xs font-semibold text-sage-700 hover:underline"
-            >
-              Clear priorities ({selectedPriorities.length})
-            </button>
-          )}
-        </div>
-
-        <div
-          role="group"
-          aria-label="Filter by meal recipe priorities"
-          className="flex flex-wrap items-center gap-2"
-        >
-          {MEAL_PRIORITIES.map((priority) => {
-            const selected = selectedPriorities.includes(priority.id)
-            const count = priorityCounts.get(priority.id) ?? 0
-            return (
-              <button
-                key={priority.id}
-                type="button"
-                aria-pressed={selected}
-                title={priority.description}
-                onClick={() => togglePriority(priority.id)}
-                className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold whitespace-nowrap transition ${
-                  selected
-                    ? 'bg-sage-600 text-white shadow-xs hover:bg-sage-700'
-                    : 'border border-parchment bg-white text-ink hover:border-sage-400 hover:bg-sage-50'
-                }`}
-              >
-                <span>{priority.label}</span>
-                <span
-                  className={`tabular-nums text-[11px] ${
-                    selected ? 'text-white/85' : 'text-ink-subtle'
-                  }`}
-                >
-                  {count}
-                </span>
-              </button>
-            )
-          })}
         </div>
       </section>
 
@@ -622,7 +553,7 @@ export function Find() {
           </h3>
           <p className="mx-auto mt-1 max-w-md text-sm text-ink-muted">
             {selectedPriorities.length > 0 && rawMatches.length > 0
-              ? `${rawMatches.length} ingredient match${rawMatches.length === 1 ? ' was' : 'es were'} filtered out by your meal priorities (${activePriorityLabels.join(', ')}).`
+              ? `${rawMatches.length} ingredient match${rawMatches.length === 1 ? ' was' : 'es were'} filtered out by your dietary preferences (${activePriorityLabels.join(', ')}).`
               : matchesWithoutExclusionsCount > 0
                 ? `${matchesWithoutExclusionsCount} matching recipe${matchesWithoutExclusionsCount === 1 ? ' was' : 's were'} hidden by your excluded ingredients (${excludedIngredients.join(', ')}).`
                 : maxMissing !== null
@@ -636,7 +567,7 @@ export function Find() {
                 onClick={clearPriorities}
                 className="min-h-10 rounded-xl bg-sage-600 px-4 py-2 text-xs font-semibold text-white hover:bg-sage-700"
               >
-                Clear priorities
+                Clear dietary preferences
               </button>
             )}
             {maxMissing !== null && (

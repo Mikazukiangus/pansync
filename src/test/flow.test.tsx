@@ -21,6 +21,7 @@ describe('End-to-end user flow (Find -> Recipe -> Favourite -> Plan & Shopping L
     useSearch.getState().setFridgeMode(false)
     useSearch.getState().setMaxMissing(null)
     useSettings.getState().resetStaples()
+    useSettings.getState().clearDietaryPreferences()
     for (const id of [...useFavourites.getState().ids]) {
       useFavourites.getState().removeFavourite(id)
     }

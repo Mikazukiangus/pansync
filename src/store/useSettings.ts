@@ -2,15 +2,19 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { DEFAULT_STAPLES } from '../data/aliases'
 import { normalize } from '../lib/matching'
+import type { MealPriorityId } from '../lib/priorities'
 
 interface SettingsState {
   staples: string[]
   excludedIngredients: string[]
+  dietaryPreferences: MealPriorityId[]
   addStaple: (name: string) => void
   removeStaple: (name: string) => void
   resetStaples: () => void
   addExcluded: (name: string) => void
   removeExcluded: (name: string) => void
+  toggleDietaryPreference: (id: MealPriorityId) => void
+  clearDietaryPreferences: () => void
 }
 
 export const useSettings = create<SettingsState>()(
@@ -18,6 +22,7 @@ export const useSettings = create<SettingsState>()(
     (set) => ({
       staples: [...DEFAULT_STAPLES],
       excludedIngredients: [],
+      dietaryPreferences: [],
       addStaple: (name) => {
         const cleaned = name.trim().toLowerCase()
         if (!cleaned) return
@@ -51,6 +56,16 @@ export const useSettings = create<SettingsState>()(
             (e) => normalize(e) !== normalize(name),
           ),
         })),
+      toggleDietaryPreference: (id) =>
+        set((state) => {
+          const current = state.dietaryPreferences ?? []
+          return {
+            dietaryPreferences: current.includes(id)
+              ? current.filter((item) => item !== id)
+              : [...current, id],
+          }
+        }),
+      clearDietaryPreferences: () => set({ dietaryPreferences: [] }),
     }),
     {
       name: 'pansync-settings',

@@ -1,6 +1,12 @@
-import { RotateCcw, ShieldAlert, SlidersHorizontal, Sparkles, X } from 'lucide-react'
+import {
+  ShieldAlert,
+  SlidersHorizontal,
+  UtensilsCrossed,
+  X,
+} from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { normalize } from '../lib/matching'
+import { MEAL_PRIORITIES } from '../lib/priorities'
 import { useSettings } from '../store/useSettings'
 
 interface SettingsModalProps {
@@ -12,16 +18,14 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
   const {
     staples,
     excludedIngredients,
-    addStaple,
-    removeStaple,
-    resetStaples,
+    dietaryPreferences = [],
     addExcluded,
     removeExcluded,
+    toggleDietaryPreference,
+    clearDietaryPreferences,
   } = useSettings()
 
-  const [newStaple, setNewStaple] = useState('')
   const [newExcluded, setNewExcluded] = useState('')
-  const [stapleFeedback, setStapleFeedback] = useState<string | null>(null)
   const [excludedFeedback, setExcludedFeedback] = useState<string | null>(null)
 
   useEffect(() => {
@@ -37,27 +41,6 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
   }, [open, onClose])
 
   if (!open) return null
-
-  const handleAddStaple = (e: React.FormEvent) => {
-    e.preventDefault()
-    const cleaned = newStaple.trim()
-    if (!cleaned) {
-      setStapleFeedback('Enter an ingredient name first.')
-      return
-    }
-    const norm = normalize(cleaned)
-    if (staples.some((s) => normalize(s) === norm)) {
-      setStapleFeedback(`"${cleaned}" is already in your pantry staples.`)
-      return
-    }
-    if (excludedIngredients.some((ex) => normalize(ex) === norm)) {
-      setStapleFeedback(`Added "${cleaned}". Note: it is also in your Excluded list.`)
-    } else {
-      setStapleFeedback(null)
-    }
-    addStaple(cleaned)
-    setNewStaple('')
-  }
 
   const handleAddExcluded = (e: React.FormEvent) => {
     e.preventDefault()
@@ -99,7 +82,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
             </div>
             <div>
               <h2 id="settings-modal-title" className="font-display text-xl font-semibold text-ink">
-                Pantry &amp; Dietary Preferences
+                Preferences
               </h2>
               <p className="text-xs text-ink-muted">
                 Saved automatically in your browser
@@ -109,81 +92,61 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close settings"
+            aria-label="Close preferences"
             className="flex min-h-10 min-w-10 items-center justify-center rounded-full p-2 text-ink-muted transition hover:bg-cream-dark hover:text-ink"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Staples section */}
+        {/* Dietary preferences section */}
         <div className="mt-6 rounded-2xl border border-parchment bg-white p-4">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-sage-600" />
+              <UtensilsCrossed className="h-4 w-4 text-sage-600" />
               <h3 className="font-sans text-sm font-semibold text-ink">
-                Pantry Staples ({staples.length})
+                Dietary preferences{dietaryPreferences.length > 0 ? ` (${dietaryPreferences.length})` : ''}
               </h3>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                resetStaples()
-                setStapleFeedback('Staples reset to defaults.')
-              }}
-              className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-sage-700 transition hover:bg-sage-50 hover:text-sage-800"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-              Reset defaults
-            </button>
+            {dietaryPreferences.length > 0 && (
+              <button
+                type="button"
+                onClick={clearDietaryPreferences}
+                className="rounded-lg px-2 py-1 text-xs font-medium text-sage-700 transition hover:bg-sage-50 hover:text-sage-800"
+              >
+                Clear all
+              </button>
+            )}
           </div>
           <p className="mt-1 text-xs text-ink-muted">
-            Staples always count as &ldquo;have&rdquo; in recipes and are left off your shopping list.
+            Prioritize and filter recipes matching these meal categories on Find.
           </p>
 
-          <div className="mt-3 flex flex-wrap gap-2">
-            {staples.map((staple) => (
-              <span
-                key={staple}
-                className="inline-flex items-center gap-1.5 rounded-full bg-sage-50 px-3 py-1 text-xs font-medium text-sage-800 ring-1 ring-sage-200"
-              >
-                {staple}
+          <div
+            role="group"
+            aria-label="Dietary preferences"
+            className="mt-3 flex flex-wrap gap-2"
+          >
+            {MEAL_PRIORITIES.map((priority) => {
+              const selected = dietaryPreferences.includes(priority.id)
+              return (
                 <button
+                  key={priority.id}
                   type="button"
-                  onClick={() => removeStaple(staple)}
-                  aria-label={`Remove staple ${staple}`}
-                  className="flex h-4 w-4 items-center justify-center rounded-full text-sage-600 hover:bg-sage-200 hover:text-sage-900"
+                  aria-pressed={selected}
+                  title={priority.description}
+                  onClick={() => toggleDietaryPreference(priority.id)}
+                  className={`inline-flex min-h-9 shrink-0 items-center rounded-full px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap transition ${
+                    selected
+                      ? 'bg-sage-600 text-white shadow-xs hover:bg-sage-700'
+                      : 'border border-parchment bg-cream/60 text-ink hover:border-sage-400 hover:bg-sage-50'
+                  }`}
                 >
-                  <X className="h-3 w-3" />
+                  {priority.label}
                 </button>
-              </span>
-            ))}
+              )
+            })}
           </div>
-
-          <form onSubmit={handleAddStaple} className="mt-3 flex gap-2">
-            <input
-              type="text"
-              value={newStaple}
-              onChange={(e) => {
-                setNewStaple(e.target.value)
-                if (stapleFeedback) setStapleFeedback(null)
-              }}
-              aria-label="Add pantry staple"
-              placeholder="Add staple (e.g. butter, soy sauce, flour)..."
-              className="flex-1 rounded-xl border border-parchment bg-cream/60 px-3 py-2 text-sm text-ink placeholder:text-ink-subtle focus:border-sage-500 focus:bg-white focus:outline-none"
-            />
-            <button
-              type="submit"
-              className="min-h-10 rounded-xl bg-sage-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-sage-700"
-            >
-              Add
-            </button>
-          </form>
-          {stapleFeedback && (
-            <p role="status" className="mt-2 text-xs font-medium text-honey-700">
-              {stapleFeedback}
-            </p>
-          )}
         </div>
 
         {/* Excluded ingredients / allergens section */}
